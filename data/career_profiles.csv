@@ -1,0 +1,11 @@
+student_id,education_level,major,python_skill,math_skill,data_skill,ai_skill,communication_skill,experience_years,target_role,recommended_project
+1,Bachelor,Mathematics,3,5,3,2,4,1,Data Analyst,Sales Dashboard with Python and Power BI
+2,Bachelor,Computer Science,4,4,3,3,3,1,Machine Learning Engineer,Student Performance Prediction Model
+3,Master,Applied Mathematics,4,5,4,3,4,2,AI Engineer,RAG Resume Feedback Assistant
+4,Bachelor,Education,2,3,2,3,5,4,AI Education Specialist,AI Tutoring Chatbot
+5,Bachelor,Business,2,2,4,2,4,2,Business Intelligence Analyst,Customer Analytics Dashboard
+6,Master,Data Science,5,4,5,4,3,2,Data Scientist,Job Market Skill Analysis
+7,Bachelor,Statistics,3,5,4,2,3,1,Data Analyst,Scholarship Eligibility Dashboard
+8,Bachelor,Engineering,4,4,3,3,3,1,Machine Learning Engineer,Crop Yield Prediction Model
+9,Master,Education Technology,3,3,3,4,5,3,AI Education Specialist,Personalized Learning Recommendation App
+10,Bachelor,Information Systems,3,3,4,3,4,2,AI Product Analyst,AI Career Path Recommendation Tool
