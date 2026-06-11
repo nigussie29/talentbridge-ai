@@ -1,4 +1,9 @@
 # TalentBridge AI Career Analyzer
+## Live Demo
+
+Try the app here:
+
+https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app/
 
 TalentBridge AI is an end-to-end AI career readiness application that helps users analyze their skills, detect skills from resume text, calculate career readiness, identify skill gaps, and receive personalized portfolio project recommendations.
 
