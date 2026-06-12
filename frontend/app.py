@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import streamlit as st
+from PyPDF2 import PdfReader
 
 # Connect frontend to backend folder
 project_folder = Path(__file__).resolve().parent.parent
@@ -12,7 +13,10 @@ from career_engine import (
     analyze_career_profile,
     analyze_resume_text,
     create_profile_from_resume,
-    generate_text_report
+    generate_text_report,
+    analyze_job_description,
+    compare_resume_to_job,
+    generate_course_plan
 )
 
 
@@ -25,6 +29,18 @@ skill_display_names = {
 }
 
 
+def extract_text_from_pdf(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    text = ""
+
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text + "\n"
+
+    return text
+
+
 st.set_page_config(
     page_title="TalentBridge AI",
     page_icon="🤖",
@@ -35,7 +51,7 @@ st.title("🤖 TalentBridge AI Career Analyzer")
 
 st.write(
     "This app analyzes your skills, calculates your career readiness score, "
-    "finds skill gaps, and recommends portfolio projects."
+    "finds skill gaps, recommends portfolio projects, and creates a personalized course plan."
 )
 
 # -----------------------------
@@ -56,15 +72,87 @@ target_career = st.selectbox(
 # -----------------------------
 st.header("Resume Skill Analyzer")
 
+uploaded_resume = st.file_uploader(
+    "Upload your resume PDF",
+    type=["pdf"]
+)
+
+pdf_text = ""
+
+if uploaded_resume is not None:
+    pdf_text = extract_text_from_pdf(uploaded_resume)
+    st.success("PDF resume uploaded and text extracted.")
+
 resume_text = st.text_area(
-    "Paste your resume text here",
+    "Paste your resume text here or use uploaded PDF text",
+    value=pdf_text,
     height=200,
     placeholder="Paste resume text, skills, experience, or project descriptions here..."
 )
 
+# -----------------------------
+# Job Description Matching
+# -----------------------------
+st.subheader("Job Description Matching")
+
+job_description_text = st.text_area(
+    "Paste the job description here",
+    height=200,
+    placeholder="Paste the job posting or job requirements here..."
+)
+
+if st.button("Compare Resume to Job Description"):
+    if resume_text.strip() == "":
+        st.warning("Please paste your resume text or upload a resume PDF first.")
+    elif job_description_text.strip() == "":
+        st.warning("Please paste a job description first.")
+    else:
+        resume_skills = analyze_resume_text(resume_text)
+        job_required_skills = analyze_job_description(job_description_text)
+        job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
+
+        st.subheader("Job Match Result")
+
+        st.metric(
+            label="Job Match Score",
+            value=f"{job_comparison['match_score']}%"
+        )
+
+        st.write("Resume Skills Detected:")
+        st.write(resume_skills)
+
+        st.write("Job Required Skills Detected:")
+        st.write(job_required_skills)
+
+        st.write("Matched Skills:")
+        if len(job_comparison["matched_skills"]) == 0:
+            st.write("No matched skills found.")
+        else:
+            for skill in job_comparison["matched_skills"]:
+                st.success(skill)
+
+        st.write("Missing Skills:")
+        if len(job_comparison["missing_skills"]) == 0:
+            st.success("No missing skills. Strong match.")
+        else:
+            for skill in job_comparison["missing_skills"]:
+                st.warning(skill)
+
+            st.subheader("Personalized Course Plan")
+
+            course_plan = generate_course_plan(job_comparison["missing_skills"])
+
+            for skill, lessons in course_plan.items():
+                st.markdown(f"### {skill}")
+                for lesson in lessons:
+                    st.write(f"- {lesson}")
+
+# -----------------------------
+# Resume-Based Career Readiness
+# -----------------------------
 if st.button("Analyze Resume Skills"):
     if resume_text.strip() == "":
-        st.warning("Please paste resume text first.")
+        st.warning("Please paste resume text first or upload a resume PDF.")
     else:
         detected_skills = analyze_resume_text(resume_text)
 

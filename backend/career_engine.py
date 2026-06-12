@@ -189,3 +189,130 @@ def generate_text_report(result, skill_display_names=None):
                 report += f"- {project}\n"
 
     return report
+def analyze_job_description(job_description_text):
+    skill_keywords = {
+        "Python": ["python", "pandas", "numpy"],
+        "SQL": ["sql", "database", "mysql", "postgresql"],
+        "Power BI": ["power bi", "dashboard", "dax"],
+        "Machine Learning": ["machine learning", "scikit-learn", "model training"],
+        "Artificial Intelligence": ["artificial intelligence", "ai", "llm", "rag", "chatbot"],
+        "Data Analysis": ["data analysis", "data cleaning", "data visualization"],
+        "Communication": ["communication", "presentation", "stakeholder", "reporting"],
+        "Excel": ["excel", "spreadsheet", "pivot table"],
+        "Statistics": ["statistics", "probability", "statistical analysis"],
+        "ETL": ["etl", "data pipeline", "data transformation"],
+        "Cloud": ["aws", "azure", "gcp", "cloud"],
+        "FastAPI": ["fastapi", "api", "rest api"],
+        "Streamlit": ["streamlit"],
+        "Git": ["git", "github", "version control"]
+    }
+
+    job_description_lower = job_description_text.lower()
+    required_skills = []
+
+    for skill, keywords in skill_keywords.items():
+        for keyword in keywords:
+            if keyword in job_description_lower:
+                required_skills.append(skill)
+                break
+
+    return required_skills
+
+
+def compare_resume_to_job(resume_skills, job_required_skills):
+    matched_skills = []
+    missing_skills = []
+
+    for skill in job_required_skills:
+        if skill in resume_skills:
+            matched_skills.append(skill)
+        else:
+            missing_skills.append(skill)
+
+    if len(job_required_skills) == 0:
+        match_score = 0
+    else:
+        match_score = (len(matched_skills) / len(job_required_skills)) * 100
+
+    return {
+        "matched_skills": matched_skills,
+        "missing_skills": missing_skills,
+        "match_score": round(match_score, 2)
+    }
+def generate_course_plan(missing_skills):
+    course_library = {
+        "Excel": [
+            "Learn Excel formulas, tables, sorting, filtering, and pivot tables.",
+            "Practice cleaning a messy spreadsheet dataset.",
+            "Create one Excel dashboard and explain your findings."
+        ],
+        "Statistics": [
+            "Review mean, median, standard deviation, probability, and correlation.",
+            "Practice interpreting charts and summary statistics.",
+            "Complete a small statistics project using real data."
+        ],
+        "ETL": [
+            "Learn what Extract, Transform, Load means.",
+            "Practice cleaning and transforming CSV data using Python pandas.",
+            "Build a small ETL pipeline from raw data to clean report."
+        ],
+        "Cloud": [
+            "Learn basic cloud concepts: storage, compute, database, and deployment.",
+            "Compare AWS, Azure, and Google Cloud at a beginner level.",
+            "Deploy one small app or dashboard online."
+        ],
+        "Git": [
+            "Learn Git basics: init, add, commit, status, branch, and push.",
+            "Create a GitHub repository for a portfolio project.",
+            "Write a professional README.md file."
+        ],
+        "SQL": [
+            "Learn SELECT, WHERE, ORDER BY, GROUP BY, and JOIN.",
+            "Practice writing queries on a sample database.",
+            "Create a mini SQL analysis project."
+        ],
+        "Python": [
+            "Review Python variables, lists, dictionaries, functions, and loops.",
+            "Practice pandas data analysis.",
+            "Build a Python project and upload it to GitHub."
+        ],
+        "Power BI": [
+            "Learn Power BI visuals, filters, slicers, and measures.",
+            "Practice Power Query data cleaning.",
+            "Create a business dashboard project."
+        ],
+        "Machine Learning": [
+            "Learn supervised learning, features, labels, training, and testing.",
+            "Build a classification model using a simple dataset.",
+            "Explain model accuracy and limitations."
+        ],
+        "Artificial Intelligence": [
+            "Learn AI concepts: LLMs, prompts, RAG, embeddings, and chatbots.",
+            "Build a simple AI assistant project.",
+            "Document ethical risks and limitations."
+        ],
+        "Data Analysis": [
+            "Learn data cleaning, grouping, filtering, and visualization.",
+            "Analyze a real dataset using Python or Power BI.",
+            "Write a short report explaining insights."
+        ],
+        "Communication": [
+            "Practice explaining technical results in simple language.",
+            "Create a one-page project summary.",
+            "Record a short presentation explaining your portfolio project."
+        ]
+    }
+
+    course_plan = {}
+
+    for skill in missing_skills:
+        if skill in course_library:
+            course_plan[skill] = course_library[skill]
+        else:
+            course_plan[skill] = [
+                f"Study the basics of {skill}.",
+                f"Complete one practice activity using {skill}.",
+                f"Build a small portfolio project showing {skill}."
+            ]
+
+    return course_plan
