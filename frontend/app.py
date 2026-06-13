@@ -54,6 +54,29 @@ st.write(
     "This app analyzes your skills, calculates your career readiness score, "
     "finds skill gaps, recommends portfolio projects, and creates a personalized course plan."
 )
+user_mode = st.selectbox(
+    "Who are you using this app as?",
+    [
+        "Job Seeker",
+        "HR / Recruiter",
+        "Training Center"
+    ]
+)
+
+if user_mode == "Job Seeker":
+    st.info(
+        "Job Seeker Mode: Upload your resume, compare it with a job description, "
+        "find your skill gaps, and get a personalized learning path."
+    )
+elif user_mode == "HR / Recruiter":
+    st.info(
+        "HR / Recruiter Mode: Evaluate candidate-job fit, identify strengths and gaps, "
+        "and generate an HR candidate report."
+    )
+else:
+    st.info(
+        "Training Center Mode: Use skill gaps to create a course plan and student development pathway."
+    )
 
 # -----------------------------
 # Target Career
