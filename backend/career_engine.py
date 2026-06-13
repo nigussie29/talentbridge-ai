@@ -316,3 +316,40 @@ def generate_course_plan(missing_skills):
             ]
 
     return course_plan
+def generate_hr_report(job_comparison):
+    match_score = job_comparison["match_score"]
+    matched_skills = job_comparison["matched_skills"]
+    missing_skills = job_comparison["missing_skills"]
+
+    if match_score >= 80:
+        recommendation = "Interview Ready"
+        decision = "Recommend for interview"
+        summary = (
+            "This candidate shows strong alignment with the job requirements. "
+            "The candidate has most of the required skills and appears ready for the interview stage."
+        )
+    elif match_score >= 50:
+        recommendation = "Train Before Interview"
+        decision = "Recommend targeted training before final interview"
+        summary = (
+            "This candidate has a useful foundation but is not fully ready yet. "
+            "The candidate should complete targeted training in the missing skills before moving forward."
+        )
+    else:
+        recommendation = "Not Ready Yet"
+        decision = "Recommend learning pathway before interview consideration"
+        summary = (
+            "This candidate has a low match with the current job requirements. "
+            "The candidate should complete a structured learning plan and build portfolio evidence before applying."
+        )
+
+    report = {
+        "recommendation": recommendation,
+        "decision": decision,
+        "match_score": match_score,
+        "strengths": matched_skills,
+        "skill_gaps": missing_skills,
+        "summary": summary
+    }
+
+    return report

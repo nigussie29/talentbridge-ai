@@ -16,7 +16,8 @@ from career_engine import (
     generate_text_report,
     analyze_job_description,
     compare_resume_to_job,
-    generate_course_plan
+    generate_course_plan,
+    generate_hr_report
 )
 
 
@@ -110,6 +111,7 @@ if st.button("Compare Resume to Job Description"):
         resume_skills = analyze_resume_text(resume_text)
         job_required_skills = analyze_job_description(job_description_text)
         job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
+        hr_report = generate_hr_report(job_comparison)
 
         st.subheader("Job Match Result")
 
@@ -147,6 +149,28 @@ if st.button("Compare Resume to Job Description"):
                 for lesson in lessons:
                     st.write(f"- {lesson}")
 
+        st.subheader("HR Candidate Report")
+
+        st.write("**Candidate Recommendation:**", hr_report["recommendation"])
+        st.write("**HR Decision:**", hr_report["decision"])
+        st.write("**Job Match Score:**", f"{hr_report['match_score']}%")
+
+        st.write("**Candidate Strengths:**")
+        if len(hr_report["strengths"]) == 0:
+            st.write("No major strengths detected.")
+        else:
+            for skill in hr_report["strengths"]:
+                st.success(skill)
+
+        st.write("**Candidate Skill Gaps:**")
+        if len(hr_report["skill_gaps"]) == 0:
+            st.success("No major gaps detected.")
+        else:
+            for skill in hr_report["skill_gaps"]:
+                st.warning(skill)
+
+        st.write("**HR Summary:**")
+        st.info(hr_report["summary"])
 # -----------------------------
 # Resume-Based Career Readiness
 # -----------------------------
