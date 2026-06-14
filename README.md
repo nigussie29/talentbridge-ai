@@ -218,7 +218,69 @@ The app supports downloadable text reports, including:
 
 * Resume-based career report
 * Manual career readiness report
-* Full mode-based report for Job Seeker, HR / Recruiter, or Training Center Mode
+* Full mode-based report for Job Seeker, HR / Recruiter, or Training Center Mode## New Version 2 Features
+
+TalentBridge AI now includes advanced features that make it more than a resume scanner.
+
+### Candidate Progress Tracker
+
+TalentBridge AI turns missing skills into a progress tracker. For each missing skill, the app creates:
+
+* A learning task
+* A portfolio evidence requirement
+* A progress status
+
+Example:
+
+```text
+Missing Skill: ETL
+Learning Task: Build a small ETL pipeline that extracts, cleans, transforms, and saves data.
+Portfolio Evidence: Upload a GitHub link showing the ETL pipeline.
+Status: Not Started
+```
+
+This helps job seekers prove improvement instead of only reading recommendations.
+
+### Readiness Improvement Score
+
+The app estimates how much a candidate’s readiness can improve after completing the recommended training path.
+
+Example:
+
+```text
+Current Job Match Score: 50%
+Estimated Score After Training: 80%
+Improvement Potential: +30%
+Status Change: Train Before Interview → Interview Ready
+```
+
+This helps job seekers, recruiters, and training centers understand the value of completing the learning plan.
+
+### Recruiter and Job Seeker Feedback Loop
+
+TalentBridge AI is designed to connect job seekers, recruiters, and training centers.
+
+The product flow is:
+
+```text
+Resume + Job Description
+↓
+Skill Gap Analysis
+↓
+Personalized Course Plan
+↓
+Portfolio Evidence
+↓
+Progress Tracker
+↓
+Improved Candidate Readiness
+↓
+Recruiter-Ready Report
+```
+
+This makes the app different from simple resume scanners. Instead of only saying what is missing, TalentBridge AI shows the user how to become ready.
+
+
 
 ### Dashboard-Style Layout
 
