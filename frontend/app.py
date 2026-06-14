@@ -1,3 +1,4 @@
+
 import sys
 from pathlib import Path
 
@@ -18,7 +19,8 @@ from career_engine import (
     compare_resume_to_job,
     generate_course_plan,
     generate_hr_report,
-    generate_mode_report
+    generate_mode_report,
+    generate_progress_tracker
 )
 
 
@@ -73,6 +75,7 @@ with col3:
     st.metric("For Training Centers", "Learning Paths")
 
 st.divider()
+
 # -----------------------------
 # Sidebar Controls
 # -----------------------------
@@ -173,9 +176,9 @@ with tab1:
                 value=f"{job_comparison['match_score']}%"
             )
 
-            col1, col2 = st.columns(2)
+            result_col1, result_col2 = st.columns(2)
 
-            with col1:
+            with result_col1:
                 st.write("**Resume Skills Detected:**")
                 if len(resume_skills) == 0:
                     st.write("No resume skills detected.")
@@ -183,7 +186,7 @@ with tab1:
                     for skill in resume_skills:
                         st.success(skill)
 
-            with col2:
+            with result_col2:
                 st.write("**Job Required Skills Detected:**")
                 if len(job_required_skills) == 0:
                     st.write("No job skills detected.")
@@ -206,7 +209,7 @@ with tab1:
                     st.warning(skill)
 
             # -----------------------------
-            # Mode-Based Output
+            # Job Seeker Mode
             # -----------------------------
             if user_mode == "Job Seeker":
                 st.subheader("Personalized Course Plan")
@@ -230,6 +233,19 @@ with tab1:
                     for skill in job_comparison["missing_skills"]:
                         st.write(f"- Build one small project that proves your {skill} skill.")
 
+                st.subheader("Candidate Progress Tracker")
+
+                if len(job_comparison["missing_skills"]) == 0:
+                    st.success("No missing skills to track.")
+                else:
+                    progress_tracker = generate_progress_tracker(
+                        job_comparison["missing_skills"]
+                    )
+                    st.table(progress_tracker)
+
+            # -----------------------------
+            # HR / Recruiter Mode
+            # -----------------------------
             elif user_mode == "HR / Recruiter":
                 st.subheader("HR Candidate Report")
 
@@ -254,6 +270,9 @@ with tab1:
                 st.write("**HR Summary:**")
                 st.info(hr_report["summary"])
 
+            # -----------------------------
+            # Training Center Mode
+            # -----------------------------
             else:
                 st.subheader("Training Center Learning Pathway")
 
@@ -271,6 +290,16 @@ with tab1:
                         for lesson in lessons:
                             st.write(f"- {lesson}")
                         week_number += 1
+
+                st.subheader("Student Progress Tracker")
+
+                if len(job_comparison["missing_skills"]) == 0:
+                    st.success("No missing skills to track.")
+                else:
+                    progress_tracker = generate_progress_tracker(
+                        job_comparison["missing_skills"]
+                    )
+                    st.table(progress_tracker)
 
             st.download_button(
                 label="Download Full Mode Report",
@@ -438,6 +467,7 @@ with tab3:
     st.write("- Identify missing skills.")
     st.write("- Receive a personalized learning path.")
     st.write("- Build portfolio evidence for weak areas.")
+    st.write("- Track progress toward interview readiness.")
 
     st.write("**HR / Recruiters**")
     st.write("- Compare candidates against job descriptions.")
@@ -449,6 +479,19 @@ with tab3:
     st.write("- Turn skill gaps into weekly learning pathways.")
     st.write("- Support career changers and students.")
     st.write("- Create course plans based on real job requirements.")
+    st.write("- Track student progress with portfolio evidence.")
+
+    st.subheader("Missing Ingredient This App Solves")
+
+    st.write(
+        "Most resume tools only tell users what is missing. TalentBridge AI is designed "
+        "to create a feedback loop between job seekers, recruiters, and training programs."
+    )
+
+    st.write(
+        "The system turns missing skills into learning tasks, portfolio evidence, "
+        "and progress tracking so candidates can improve and recruiters can see readiness."
+    )
 
     st.subheader("Future Business Model")
 
@@ -457,3 +500,5 @@ with tab3:
     st.write("- HR candidate screening reports.")
     st.write("- Training center dashboard.")
     st.write("- Portfolio evidence tracking.")
+    st.write("- Progress tracking and readiness improvement history.")
+

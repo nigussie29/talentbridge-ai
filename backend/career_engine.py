@@ -419,3 +419,169 @@ def generate_mode_report(user_mode, job_comparison, hr_report):
                 week_number += 1
 
     return report
+def generate_progress_tracker(missing_skills):
+    evidence_library = {
+        "Excel": {
+            "learning_task": "Create an Excel dashboard using formulas, filters, and pivot tables.",
+            "portfolio_evidence": "Upload a dashboard screenshot or Excel project summary.",
+            "status": "Not Started"
+        },
+        "Statistics": {
+            "learning_task": "Complete a mini statistics analysis using mean, median, standard deviation, and correlation.",
+            "portfolio_evidence": "Upload a short statistics report or notebook.",
+            "status": "Not Started"
+        },
+        "ETL": {
+            "learning_task": "Build a small ETL pipeline that extracts, cleans, transforms, and saves data.",
+            "portfolio_evidence": "Upload a GitHub link showing the ETL pipeline.",
+            "status": "Not Started"
+        },
+        "Cloud": {
+            "learning_task": "Deploy a small app, dashboard, or API online.",
+            "portfolio_evidence": "Add a live app link or deployment screenshot.",
+            "status": "Not Started"
+        },
+        "Git": {
+            "learning_task": "Create a GitHub repository and push one complete project.",
+            "portfolio_evidence": "Add the GitHub repository link.",
+            "status": "Not Started"
+        },
+        "SQL": {
+            "learning_task": "Write SQL queries using SELECT, WHERE, GROUP BY, JOIN, and ORDER BY.",
+            "portfolio_evidence": "Upload SQL query examples or a database analysis project.",
+            "status": "Not Started"
+        },
+        "Python": {
+            "learning_task": "Build a Python project using functions, dictionaries, pandas, and file handling.",
+            "portfolio_evidence": "Upload the Python project to GitHub.",
+            "status": "Not Started"
+        },
+        "Power BI": {
+            "learning_task": "Create a Power BI dashboard with visuals, filters, and business insights.",
+            "portfolio_evidence": "Upload dashboard screenshots or a Power BI project summary.",
+            "status": "Not Started"
+        },
+        "Machine Learning": {
+            "learning_task": "Train and evaluate a simple classification or regression model.",
+            "portfolio_evidence": "Upload a notebook showing model training, accuracy, and explanation.",
+            "status": "Not Started"
+        },
+        "Artificial Intelligence": {
+            "learning_task": "Build a simple AI assistant, prompt system, or RAG prototype.",
+            "portfolio_evidence": "Upload the AI app link, GitHub repo, or project write-up.",
+            "status": "Not Started"
+        },
+        "Data Analysis": {
+            "learning_task": "Analyze a real dataset and explain insights with charts.",
+            "portfolio_evidence": "Upload a notebook, dashboard, or written analysis report.",
+            "status": "Not Started"
+        },
+        "Communication": {
+            "learning_task": "Create a one-page project summary and explain results clearly.",
+            "portfolio_evidence": "Upload a project summary or short presentation.",
+            "status": "Not Started"
+        }
+    }
+
+    tracker = []
+
+    for skill in missing_skills:
+        if skill in evidence_library:
+            tracker.append({
+                "Missing Skill": skill,
+                "Learning Task": evidence_library[skill]["learning_task"],
+                "Portfolio Evidence": evidence_library[skill]["portfolio_evidence"],
+                "Status": evidence_library[skill]["status"]
+            })
+        else:
+            tracker.append({
+                "Missing Skill": skill,
+                "Learning Task": f"Study the basics of {skill}.",
+                "Portfolio Evidence": f"Build one small project proving {skill}.",
+                "Status": "Not Started"
+            })
+
+    return tracker
+def generate_progress_tracker(missing_skills):
+    evidence_library = {
+        "Excel": {
+            "learning_task": "Create an Excel dashboard using formulas, filters, and pivot tables.",
+            "portfolio_evidence": "Upload a dashboard screenshot or Excel project summary.",
+            "status": "Not Started"
+        },
+        "Statistics": {
+            "learning_task": "Complete a mini statistics analysis using mean, median, standard deviation, and correlation.",
+            "portfolio_evidence": "Upload a short statistics report or notebook.",
+            "status": "Not Started"
+        },
+        "ETL": {
+            "learning_task": "Build a small ETL pipeline that extracts, cleans, transforms, and saves data.",
+            "portfolio_evidence": "Upload a GitHub link showing the ETL pipeline.",
+            "status": "Not Started"
+        },
+        "Cloud": {
+            "learning_task": "Deploy a small app, dashboard, or API online.",
+            "portfolio_evidence": "Add a live app link or deployment screenshot.",
+            "status": "Not Started"
+        },
+        "Git": {
+            "learning_task": "Create a GitHub repository and push one complete project.",
+            "portfolio_evidence": "Add the GitHub repository link.",
+            "status": "Not Started"
+        },
+        "SQL": {
+            "learning_task": "Write SQL queries using SELECT, WHERE, GROUP BY, JOIN, and ORDER BY.",
+            "portfolio_evidence": "Upload SQL query examples or a database analysis project.",
+            "status": "Not Started"
+        },
+        "Python": {
+            "learning_task": "Build a Python project using functions, dictionaries, pandas, and file handling.",
+            "portfolio_evidence": "Upload the Python project to GitHub.",
+            "status": "Not Started"
+        },
+        "Power BI": {
+            "learning_task": "Create a Power BI dashboard with visuals, filters, and business insights.",
+            "portfolio_evidence": "Upload dashboard screenshots or a Power BI project summary.",
+            "status": "Not Started"
+        },
+        "Machine Learning": {
+            "learning_task": "Train and evaluate a simple classification or regression model.",
+            "portfolio_evidence": "Upload a notebook showing model training, accuracy, and explanation.",
+            "status": "Not Started"
+        },
+        "Artificial Intelligence": {
+            "learning_task": "Build a simple AI assistant, prompt system, or RAG prototype.",
+            "portfolio_evidence": "Upload the AI app link, GitHub repo, or project write-up.",
+            "status": "Not Started"
+        },
+        "Data Analysis": {
+            "learning_task": "Analyze a real dataset and explain insights with charts.",
+            "portfolio_evidence": "Upload a notebook, dashboard, or written analysis report.",
+            "status": "Not Started"
+        },
+        "Communication": {
+            "learning_task": "Create a one-page project summary and explain results clearly.",
+            "portfolio_evidence": "Upload a project summary or short presentation.",
+            "status": "Not Started"
+        }
+    }
+
+    tracker = []
+
+    for skill in missing_skills:
+        if skill in evidence_library:
+            tracker.append({
+                "Missing Skill": skill,
+                "Learning Task": evidence_library[skill]["learning_task"],
+                "Portfolio Evidence": evidence_library[skill]["portfolio_evidence"],
+                "Status": evidence_library[skill]["status"]
+            })
+        else:
+            tracker.append({
+                "Missing Skill": skill,
+                "Learning Task": f"Study the basics of {skill}.",
+                "Portfolio Evidence": f"Build one small project proving {skill}.",
+                "Status": "Not Started"
+            })
+
+    return tracker
