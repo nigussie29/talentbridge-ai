@@ -353,3 +353,69 @@ def generate_hr_report(job_comparison):
     }
 
     return report
+def generate_mode_report(user_mode, job_comparison, hr_report):
+    matched_skills = job_comparison["matched_skills"]
+    missing_skills = job_comparison["missing_skills"]
+    match_score = job_comparison["match_score"]
+
+    report = ""
+    report += "TalentBridge AI Full Report\n"
+    report += "===========================\n\n"
+    report += f"User Mode: {user_mode}\n"
+    report += f"Job Match Score: {match_score}%\n\n"
+
+    report += "Matched Skills:\n"
+    if len(matched_skills) == 0:
+        report += "- No matched skills found.\n"
+    else:
+        for skill in matched_skills:
+            report += f"- {skill}\n"
+
+    report += "\nMissing Skills:\n"
+    if len(missing_skills) == 0:
+        report += "- No missing skills. Strong match.\n"
+    else:
+        for skill in missing_skills:
+            report += f"- {skill}\n"
+
+    if user_mode == "Job Seeker":
+        report += "\nPersonalized Course Plan:\n"
+        course_plan = generate_course_plan(missing_skills)
+
+        if len(missing_skills) == 0:
+            report += "- You are a strong match. Start preparing for interviews.\n"
+        else:
+            for skill, lessons in course_plan.items():
+                report += f"\n{skill}:\n"
+                for lesson in lessons:
+                    report += f"- {lesson}\n"
+
+        report += "\nPortfolio Evidence Checklist:\n"
+        if len(missing_skills) == 0:
+            report += "- Add your best 1–2 portfolio projects to your resume.\n"
+            report += "- Prepare interview stories for your strongest skills.\n"
+        else:
+            for skill in missing_skills:
+                report += f"- Build one small project that proves your {skill} skill.\n"
+
+    elif user_mode == "HR / Recruiter":
+        report += "\nHR Candidate Report:\n"
+        report += f"Candidate Recommendation: {hr_report['recommendation']}\n"
+        report += f"HR Decision: {hr_report['decision']}\n"
+        report += f"HR Summary: {hr_report['summary']}\n"
+
+    else:
+        report += "\nTraining Center Learning Pathway:\n"
+        course_plan = generate_course_plan(missing_skills)
+
+        if len(missing_skills) == 0:
+            report += "- This learner is ready for advanced placement or interview preparation.\n"
+        else:
+            week_number = 1
+            for skill, lessons in course_plan.items():
+                report += f"\nWeek {week_number}: {skill}\n"
+                for lesson in lessons:
+                    report += f"- {lesson}\n"
+                week_number += 1
+
+    return report

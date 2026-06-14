@@ -17,7 +17,8 @@ from career_engine import (
     analyze_job_description,
     compare_resume_to_job,
     generate_course_plan,
-    generate_hr_report
+    generate_hr_report,
+    generate_mode_report
 )
 
 
@@ -140,6 +141,12 @@ if st.button("Compare Resume to Job Description", key="compare_resume_job_button
         job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
         hr_report = generate_hr_report(job_comparison)
 
+        mode_report_text = generate_mode_report(
+            user_mode,
+            job_comparison,
+            hr_report
+        )
+
         st.subheader("Job Match Result")
 
         st.metric(
@@ -233,6 +240,13 @@ if st.button("Compare Resume to Job Description", key="compare_resume_job_button
                     for lesson in lessons:
                         st.write(f"- {lesson}")
                     week_number += 1
+
+        st.download_button(
+            label="Download Full Mode Report",
+            data=mode_report_text,
+            file_name="talentbridge_full_mode_report.txt",
+            mime="text/plain"
+        )
 
 # -----------------------------
 # Resume-Based Career Readiness
