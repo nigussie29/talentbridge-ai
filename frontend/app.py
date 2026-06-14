@@ -1,4 +1,3 @@
-
 import sys
 from pathlib import Path
 
@@ -20,7 +19,8 @@ from career_engine import (
     generate_course_plan,
     generate_hr_report,
     generate_mode_report,
-    generate_progress_tracker
+    generate_progress_tracker,
+    calculate_improvement_score
 )
 
 
@@ -162,6 +162,7 @@ with tab1:
             job_required_skills = analyze_job_description(job_description_text)
             job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
             hr_report = generate_hr_report(job_comparison)
+            improvement_score = calculate_improvement_score(job_comparison)
 
             mode_report_text = generate_mode_report(
                 user_mode,
@@ -207,6 +208,34 @@ with tab1:
             else:
                 for skill in job_comparison["missing_skills"]:
                     st.warning(skill)
+
+            st.subheader("Readiness Improvement Score")
+
+            col_a, col_b, col_c = st.columns(3)
+
+            with col_a:
+                st.metric(
+                    "Current Score",
+                    f"{improvement_score['current_score']}%"
+                )
+
+            with col_b:
+                st.metric(
+                    "After Training",
+                    f"{improvement_score['estimated_score_after_training']}%"
+                )
+
+            with col_c:
+                st.metric(
+                    "Improvement",
+                    f"+{improvement_score['improvement_potential']}%"
+                )
+
+            st.write(
+                "**Status Change:**",
+                f"{improvement_score['current_status']} → "
+                f"{improvement_score['estimated_status_after_training']}"
+            )
 
             # -----------------------------
             # Job Seeker Mode
@@ -277,7 +306,9 @@ with tab1:
                 st.subheader("Training Center Learning Pathway")
 
                 if len(job_comparison["missing_skills"]) == 0:
-                    st.success("This learner is ready for advanced placement or interview preparation.")
+                    st.success(
+                        "This learner is ready for advanced placement or interview preparation."
+                    )
                 else:
                     course_plan = generate_course_plan(job_comparison["missing_skills"])
 
@@ -338,7 +369,10 @@ with tab1:
                 resume_result = analyze_career_profile(estimated_profile, target_career)
 
                 st.subheader("Resume-Based Career Readiness")
-                st.metric("Resume Readiness Score", f"{resume_result['readiness_score']}%")
+                st.metric(
+                    "Resume Readiness Score",
+                    f"{resume_result['readiness_score']}%"
+                )
                 st.write("Status:", resume_result["status"])
 
                 st.subheader("Resume-Based Skill Gaps")
@@ -348,7 +382,9 @@ with tab1:
                 else:
                     for skill, gap in resume_result["skill_gaps"].items():
                         clean_skill_name = skill_display_names.get(skill, skill)
-                        st.write(f"- **{clean_skill_name}**: improve by {gap} level(s)")
+                        st.write(
+                            f"- **{clean_skill_name}**: improve by {gap} level(s)"
+                        )
 
                 st.subheader("Resume-Based Recommended Portfolio Projects")
 
@@ -501,4 +537,3 @@ with tab3:
     st.write("- Training center dashboard.")
     st.write("- Portfolio evidence tracking.")
     st.write("- Progress tracking and readiness improvement history.")
-

@@ -585,3 +585,39 @@ def generate_progress_tracker(missing_skills):
             })
 
     return tracker
+def calculate_improvement_score(job_comparison):
+    current_score = job_comparison["match_score"]
+    missing_skills = job_comparison["missing_skills"]
+
+    # Simple rule:
+    # each missing skill completed can improve readiness by 6 points
+    possible_improvement = len(missing_skills) * 6
+
+    estimated_score = current_score + possible_improvement
+
+    if estimated_score > 100:
+        estimated_score = 100
+
+    improvement_potential = estimated_score - current_score
+
+    if current_score >= 80:
+        current_status = "Interview Ready"
+    elif current_score >= 50:
+        current_status = "Train Before Interview"
+    else:
+        current_status = "Not Ready Yet"
+
+    if estimated_score >= 80:
+        estimated_status = "Interview Ready"
+    elif estimated_score >= 50:
+        estimated_status = "Train Before Interview"
+    else:
+        estimated_status = "Not Ready Yet"
+
+    return {
+        "current_score": round(current_score, 2),
+        "estimated_score_after_training": round(estimated_score, 2),
+        "improvement_potential": round(improvement_potential, 2),
+        "current_status": current_status,
+        "estimated_status_after_training": estimated_status
+    }
