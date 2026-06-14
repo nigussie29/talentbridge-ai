@@ -298,6 +298,40 @@ with tab1:
 
                 st.write("**HR Summary:**")
                 st.info(hr_report["summary"])
+                st.subheader("Recruiter Feedback Form")
+
+                candidate_name = st.text_input(
+                    "Candidate Name",
+                    placeholder="Enter candidate name"
+                )
+
+                recruiter_decision = st.selectbox(
+                    "Recruiter Decision",
+                    [
+                        "Interview Ready",
+                        "Train Before Interview",
+                        "Not Ready Yet",
+                        "Needs More Portfolio Evidence"
+                    ]
+                )
+
+                recruiter_feedback = st.text_area(
+                    "Recruiter Feedback",
+                    placeholder="Write feedback for the candidate..."
+                )
+
+                recommended_next_step = st.text_area(
+                    "Recommended Next Step",
+                    placeholder="Example: Complete ETL project and add GitHub link."
+                )
+
+                if st.button("Generate Recruiter Feedback Summary"):
+                    st.subheader("Recruiter Feedback Summary")
+
+                    st.write("**Candidate:**", candidate_name)
+                    st.write("**Decision:**", recruiter_decision)
+                    st.write("**Feedback:**", recruiter_feedback)
+                    st.write("**Recommended Next Step:**", recommended_next_step)
 
             # -----------------------------
             # Training Center Mode
