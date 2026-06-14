@@ -54,6 +54,10 @@ st.write(
     "This app analyzes your skills, calculates your career readiness score, "
     "finds skill gaps, recommends portfolio projects, and creates a personalized course plan."
 )
+
+# -----------------------------
+# User Mode
+# -----------------------------
 user_mode = st.selectbox(
     "Who are you using this app as?",
     [
@@ -125,7 +129,7 @@ job_description_text = st.text_area(
     placeholder="Paste the job posting or job requirements here..."
 )
 
-if st.button("Compare Resume to Job Description"):
+if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
     if resume_text.strip() == "":
         st.warning("Please paste your resume text or upload a resume PDF first.")
     elif job_description_text.strip() == "":
@@ -163,41 +167,77 @@ if st.button("Compare Resume to Job Description"):
             for skill in job_comparison["missing_skills"]:
                 st.warning(skill)
 
+        # -----------------------------
+        # Mode-Based Output
+        # -----------------------------
+        if user_mode == "Job Seeker":
             st.subheader("Personalized Course Plan")
 
-            course_plan = generate_course_plan(job_comparison["missing_skills"])
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success("You are a strong match. Start preparing for interviews.")
+            else:
+                course_plan = generate_course_plan(job_comparison["missing_skills"])
 
-            for skill, lessons in course_plan.items():
-                st.markdown(f"### {skill}")
-                for lesson in lessons:
-                    st.write(f"- {lesson}")
+                for skill, lessons in course_plan.items():
+                    st.markdown(f"### {skill}")
+                    for lesson in lessons:
+                        st.write(f"- {lesson}")
 
-        st.subheader("HR Candidate Report")
+            st.subheader("Portfolio Evidence Checklist")
 
-        st.write("**Candidate Recommendation:**", hr_report["recommendation"])
-        st.write("**HR Decision:**", hr_report["decision"])
-        st.write("**Job Match Score:**", f"{hr_report['match_score']}%")
+            if len(job_comparison["missing_skills"]) == 0:
+                st.write("- Add your best 1–2 portfolio projects to your resume.")
+                st.write("- Prepare interview stories for your strongest skills.")
+            else:
+                for skill in job_comparison["missing_skills"]:
+                    st.write(f"- Build one small project that proves your {skill} skill.")
 
-        st.write("**Candidate Strengths:**")
-        if len(hr_report["strengths"]) == 0:
-            st.write("No major strengths detected.")
+        elif user_mode == "HR / Recruiter":
+            st.subheader("HR Candidate Report")
+
+            st.write("**Candidate Recommendation:**", hr_report["recommendation"])
+            st.write("**HR Decision:**", hr_report["decision"])
+            st.write("**Job Match Score:**", f"{hr_report['match_score']}%")
+
+            st.write("**Candidate Strengths:**")
+            if len(hr_report["strengths"]) == 0:
+                st.write("No major strengths detected.")
+            else:
+                for skill in hr_report["strengths"]:
+                    st.success(skill)
+
+            st.write("**Candidate Skill Gaps:**")
+            if len(hr_report["skill_gaps"]) == 0:
+                st.success("No major gaps detected.")
+            else:
+                for skill in hr_report["skill_gaps"]:
+                    st.warning(skill)
+
+            st.write("**HR Summary:**")
+            st.info(hr_report["summary"])
+
         else:
-            for skill in hr_report["strengths"]:
-                st.success(skill)
+            st.subheader("Training Center Learning Pathway")
 
-        st.write("**Candidate Skill Gaps:**")
-        if len(hr_report["skill_gaps"]) == 0:
-            st.success("No major gaps detected.")
-        else:
-            for skill in hr_report["skill_gaps"]:
-                st.warning(skill)
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success("This learner is ready for advanced placement or interview preparation.")
+            else:
+                course_plan = generate_course_plan(job_comparison["missing_skills"])
 
-        st.write("**HR Summary:**")
-        st.info(hr_report["summary"])
+                st.write("Recommended student learning pathway:")
+
+                week_number = 1
+
+                for skill, lessons in course_plan.items():
+                    st.markdown(f"### Week {week_number}: {skill}")
+                    for lesson in lessons:
+                        st.write(f"- {lesson}")
+                    week_number += 1
+
 # -----------------------------
 # Resume-Based Career Readiness
 # -----------------------------
-if st.button("Analyze Resume Skills"):
+if st.button("Analyze Resume Skills", key="analyze_resume_skills_button"):
     if resume_text.strip() == "":
         st.warning("Please paste resume text first or upload a resume PDF.")
     else:
@@ -285,7 +325,7 @@ user_profile = {
     "experience_years": experience_years
 }
 
-if st.button("Analyze My Career Readiness"):
+if st.button("Analyze My Career Readiness", key="manual_readiness_button"):
     result = analyze_career_profile(user_profile, target_career)
 
     st.header("Career Analysis Result")
