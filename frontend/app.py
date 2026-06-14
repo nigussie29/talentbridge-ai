@@ -49,13 +49,30 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🤖 TalentBridge AI Career Analyzer")
+st.markdown(
+    """
+    # 🤖 TalentBridge AI
 
-st.write(
-    "A career readiness platform that compares resumes with job descriptions, "
-    "finds skill gaps, creates learning paths, and generates HR-style reports."
+    ### Career Readiness + Job Matching + Training Pathway
+
+    TalentBridge AI helps **job seekers**, **HR teams**, and **training centers**
+    understand career readiness, identify skill gaps, and create personalized
+    learning paths from real job descriptions.
+    """
 )
 
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("For Job Seekers", "Skill Gaps")
+
+with col2:
+    st.metric("For HR Teams", "Candidate Fit")
+
+with col3:
+    st.metric("For Training Centers", "Learning Paths")
+
+st.divider()
 # -----------------------------
 # Sidebar Controls
 # -----------------------------
