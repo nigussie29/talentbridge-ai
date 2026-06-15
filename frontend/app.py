@@ -271,18 +271,54 @@ with tab1:
                         job_comparison["missing_skills"]
                     )
                     st.table(progress_tracker)
-                    st.subheader("Portfolio Evidence Links")
+                    st.subheader("Portfolio Evidence Links and Progress Status")
 
                     evidence_links = {}
+                    progress_statuses = {}
 
                     for skill in job_comparison["missing_skills"]:
+                        st.markdown(f"### {skill}")
+
                         evidence_links[skill] = st.text_input(
                             f"Paste portfolio or GitHub link for {skill}",
                             placeholder="Example: https://github.com/username/project",
                             key=f"evidence_link_{skill}"
                         )
 
+                        progress_statuses[skill] = st.selectbox(
+                            f"Progress status for {skill}",
+                            [
+                                "Not Started",
+                                "In Progress",
+                                "Completed"
+                            ],
+                            key=f"progress_status_{skill}"
+                        )
+
                     if st.button("Generate Portfolio Evidence Summary"):
+                        st.subheader("Portfolio Evidence Summary")
+
+                        evidence_report = "TalentBridge AI - Portfolio Evidence and Progress Report\n\n"
+
+                        for skill in job_comparison["missing_skills"]:
+                            link = evidence_links[skill]
+                            status = progress_statuses[skill]
+
+                            st.write(f"**Missing Skill:** {skill}")
+                            st.write(f"**Portfolio Evidence Link:** {link}")
+                            st.write(f"**Progress Status:** {status}")
+                            st.divider()
+
+                            evidence_report += f"Missing Skill: {skill}\n"
+                            evidence_report += f"Portfolio Evidence Link: {link}\n"
+                            evidence_report += f"Progress Status: {status}\n\n"
+
+                        st.download_button(
+                            label="Download Portfolio Evidence and Progress Report",
+                            data=evidence_report,
+                            file_name="talentbridge_portfolio_progress_report.txt",
+                            mime="text/plain"
+                        )
                         st.subheader("Portfolio Evidence Summary")
 
                         evidence_report = "TalentBridge AI - Portfolio Evidence Report\n\n"
