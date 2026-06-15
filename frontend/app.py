@@ -235,8 +235,24 @@ with tab1:
                 "**Status Change:**",
                 f"{improvement_score['current_status']} → "
                 f"{improvement_score['estimated_status_after_training']}"
+                
             )
+            st.subheader("Before-and-After Readiness History")
 
+            readiness_history = [
+                {
+                    "Stage": "Before Training",
+                    "Score": f"{improvement_score['current_score']}%",
+                    "Status": improvement_score["current_status"]
+                },
+                {
+                    "Stage": "After Recommended Training",
+                    "Score": f"{improvement_score['estimated_score_after_training']}%",
+                    "Status": improvement_score["estimated_status_after_training"]
+                }
+            ]
+
+            st.table(readiness_history)
             # -----------------------------
             # Job Seeker Mode
             # -----------------------------
