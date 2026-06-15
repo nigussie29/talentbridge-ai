@@ -299,6 +299,37 @@ with tab1:
                         st.subheader("Portfolio Evidence Summary")
 
                         evidence_report = "TalentBridge AI - Portfolio Evidence and Progress Report\n\n"
+                        completed_count = 0
+                        total_missing_skills = len(job_comparison["missing_skills"])
+
+                        for skill in job_comparison["missing_skills"]:
+                            if progress_statuses[skill] == "Completed":
+                                completed_count += 1
+
+                        if total_missing_skills > 0:
+                            completion_score = round(
+                                (completed_count / total_missing_skills) * 100,
+                                2
+                            )
+                        else:
+                            completion_score = 100
+
+                        st.subheader("Progress Completion Score")
+
+                        score_col1, score_col2, score_col3 = st.columns(3)
+
+                        with score_col1:
+                            st.metric("Completed Skills", completed_count)
+
+                        with score_col2:
+                            st.metric("Total Missing Skills", total_missing_skills)
+
+                        with score_col3:
+                            st.metric("Completion Score", f"{completion_score}%")
+
+                        evidence_report += f"Completed Skills: {completed_count}\n"
+                        evidence_report += f"Total Missing Skills: {total_missing_skills}\n"
+                        evidence_report += f"Progress Completion Score: {completion_score}%\n\n"
 
                         for skill in job_comparison["missing_skills"]:
                             link = evidence_links[skill]
