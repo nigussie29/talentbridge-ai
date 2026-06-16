@@ -279,6 +279,37 @@ Recruiter-Ready Report
 ```
 
 This makes the app different from simple resume scanners. Instead of only saying what is missing, TalentBridge AI shows the user how to become ready.
+### Recruiter Feedback Report Download
+
+In HR / Recruiter Mode, recruiters can enter candidate feedback, choose a decision, recommend next steps, and download a recruiter feedback report.
+
+This supports a clear recruiter-to-candidate feedback workflow.
+
+### Portfolio Evidence Links
+
+In Job Seeker Mode, candidates can paste portfolio, GitHub, or project links for each missing skill.
+
+This helps candidates prove that they are improving instead of only receiving recommendations.
+
+### Candidate Progress Status
+
+For every missing skill, candidates can mark progress as:
+
+- Not Started
+- In Progress
+- Completed
+
+This turns the app into a career progress tracker.
+
+### Progress Completion Score
+
+TalentBridge AI calculates how much of the missing-skill pathway the candidate has completed.
+
+Example:
+
+```text
+Completed Skills: 2 of 5
+Progress Completion Score: 40%
 
 
 
