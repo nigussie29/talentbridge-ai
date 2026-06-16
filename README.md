@@ -481,7 +481,44 @@ Through this project, I practiced:
 * Deploying an app using Streamlit Cloud
 
 ---
+## Business Case Tab
 
+TalentBridge AI includes a Business Case tab that explains the product as a real AI career readiness platform.
+
+### Problem
+
+Many job seekers do not know why they are not getting interviews. Recruiters may see missing skills, but candidates often do not receive a clear path to improve. Training centers also need a way to connect learning programs to real job requirements.
+
+### Solution
+
+TalentBridge AI compares resumes with job descriptions, identifies matched and missing skills, creates personalized learning paths, tracks candidate progress, collects portfolio evidence, and generates recruiter-ready reports.
+
+### Target Users
+
+- Job seekers who want to become interview-ready
+- HR teams and recruiters who need candidate-job fit reports
+- Training centers that want to build job-aligned learning pathways
+
+### Product Workflow
+
+```text
+Resume + Job Description
+↓
+Job Match Score
+↓
+Missing Skills
+↓
+Personalized Learning Path
+↓
+Portfolio Evidence Links
+↓
+Progress Status
+↓
+Completion Score
+↓
+Recruiter Feedback Report
+↓
+Improved Candidate Readiness
 ## Future Improvements
 
 Planned improvements include:
