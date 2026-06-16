@@ -621,3 +621,40 @@ def calculate_improvement_score(job_comparison):
         "current_status": current_status,
         "estimated_status_after_training": estimated_status
     }
+def prioritize_missing_skills(missing_skills):
+    high_priority = [
+        "Python",
+        "SQL",
+        "ETL",
+        "Machine Learning",
+        "Statistics",
+        "Artificial Intelligence"
+    ]
+
+    medium_priority = [
+        "Git",
+        "Cloud",
+        "Power BI",
+        "Excel",
+        "Data Visualization",
+        "Data Analysis"
+    ]
+
+    priority_report = []
+
+    for skill in missing_skills:
+        if skill in high_priority:
+            priority = "High Priority"
+        elif skill in medium_priority:
+            priority = "Medium Priority"
+        else:
+            priority = "Low Priority"
+
+        priority_report.append(
+            {
+                "Missing Skill": skill,
+                "Priority Level": priority
+            }
+        )
+
+    return priority_report

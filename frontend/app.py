@@ -20,7 +20,8 @@ from career_engine import (
     generate_hr_report,
     generate_mode_report,
     generate_progress_tracker,
-    calculate_improvement_score
+    calculate_improvement_score,
+    prioritize_missing_skills
 )
 
 
@@ -202,12 +203,22 @@ with tab1:
                 for skill in job_comparison["matched_skills"]:
                     st.success(skill)
 
-            st.write("**Missing Skills:**")
+                    st.write("**Missing Skills:**")
             if len(job_comparison["missing_skills"]) == 0:
                 st.success("No missing skills. Strong match.")
             else:
                 for skill in job_comparison["missing_skills"]:
                     st.warning(skill)
+
+            st.subheader("Skill Gap Priority Level")
+
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success("No missing skills to prioritize.")
+            else:
+                priority_report = prioritize_missing_skills(
+                    job_comparison["missing_skills"]
+                )
+                st.table(priority_report)
 
             st.subheader("Readiness Improvement Score")
 
