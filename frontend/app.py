@@ -114,14 +114,14 @@ else:
     )
 
 
-tab1, tab2, tab3 = st.tabs(
+tab1, tab2, tab3, tab4 = st.tabs(
     [
         "📄 Resume & Job Match",
         "📊 Career Readiness",
-        "🚀 Product Vision"
+        "🚀 Product Vision",
+        "💼 Business Case"
     ]
 )
-
 # ==================================================
 # TAB 1: RESUME & JOB MATCH
 # ==================================================
@@ -736,3 +736,102 @@ with tab3:
     st.write("- Training center dashboard.")
     st.write("- Portfolio evidence tracking.")
     st.write("- Progress tracking and readiness improvement history.")
+    # ==================================================
+# TAB 4: BUSINESS CASE
+# ==================================================
+with tab4:
+    st.header("TalentBridge AI Business Case")
+
+    st.write(
+        "TalentBridge AI is an AI-powered career readiness platform that helps "
+        "job seekers, recruiters, and training centers close the gap between "
+        "job requirements and candidate skills."
+    )
+
+    st.subheader("Problem")
+
+    st.write(
+        "Many job seekers do not know why they are not getting interviews. "
+        "Recruiters see missing skills, but candidates often do not receive "
+        "clear feedback or a path to improve. Training centers also need a way "
+        "to connect learning programs directly to real job requirements."
+    )
+
+    st.subheader("Solution")
+
+    st.write(
+        "TalentBridge AI compares a resume with a job description, identifies "
+        "matched and missing skills, creates a personalized learning path, "
+        "tracks progress, collects portfolio evidence, and generates recruiter-ready reports."
+    )
+
+    st.subheader("Target Users")
+
+    st.write("**1. Job Seekers**")
+    st.write("- Understand job match score")
+    st.write("- Identify missing skills")
+    st.write("- Follow a learning pathway")
+    st.write("- Add portfolio evidence")
+    st.write("- Track readiness improvement")
+
+    st.write("**2. HR / Recruiters**")
+    st.write("- Review candidate-job fit")
+    st.write("- See strengths and gaps")
+    st.write("- Generate feedback reports")
+    st.write("- Recommend training before interview")
+
+    st.write("**3. Training Centers**")
+    st.write("- Convert skill gaps into learning plans")
+    st.write("- Track learner progress")
+    st.write("- Help learners become job-ready")
+    st.write("- Align training with real job descriptions")
+
+    st.subheader("Core Value Proposition")
+
+    st.info(
+        "TalentBridge AI does not only say what skills are missing. "
+        "It shows how the candidate can become ready, prove improvement, "
+        "and return with portfolio evidence."
+    )
+
+    st.subheader("Product Workflow")
+
+    st.write(
+        """
+        Resume + Job Description  
+        ↓  
+        Job Match Score  
+        ↓  
+        Missing Skills  
+        ↓  
+        Personalized Learning Path  
+        ↓  
+        Portfolio Evidence Links  
+        ↓  
+        Progress Status  
+        ↓  
+        Completion Score  
+        ↓  
+        Recruiter Feedback Report  
+        ↓  
+        Improved Candidate Readiness
+        """
+    )
+
+    st.subheader("Possible Business Model")
+
+    st.write("- Free basic resume-job match scan")
+    st.write("- Paid detailed career readiness report")
+    st.write("- Subscription for job seekers")
+    st.write("- HR recruiter dashboard")
+    st.write("- Training center dashboard")
+    st.write("- Portfolio evidence verification")
+    st.write("- Career coaching and AI learning pathway recommendations")
+
+    st.subheader("Why This Project Is Strong for Your Portfolio")
+
+    st.write(
+        "This project shows Python, Streamlit, resume parsing, job matching, "
+        "AI product thinking, HR workflow design, user-centered design, "
+        "and business strategy."
+    )
