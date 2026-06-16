@@ -105,13 +105,84 @@ def analyze_career_profile(user_profile, target_career):
 
 def analyze_resume_text(resume_text):
     skill_keywords = {
-        "Python": ["python", "pandas", "numpy"],
-        "SQL": ["sql", "database", "mysql", "postgresql"],
-        "Power BI": ["power bi", "dashboard", "dax"],
-        "Machine Learning": ["machine learning", "scikit-learn", "model training"],
-        "Artificial Intelligence": ["artificial intelligence", "ai", "llm", "rag", "chatbot"],
-        "Data Analysis": ["data analysis", "data cleaning", "data visualization"],
-        "Communication": ["teaching", "presentation", "training", "communication"]
+        "Python": [
+            "python", "pandas", "numpy", "matplotlib", "seaborn",
+            "dataframe", "jupyter", "google colab", "scripting",
+            "automation with python"
+        ],
+
+        "SQL": [
+            "sql", "database", "mysql", "postgresql", "sqlite",
+            "query", "queries", "joins", "tables", "relational database",
+            "data warehouse"
+        ],
+
+        "Power BI": [
+            "power bi", "dashboard", "dashboards", "dax",
+            "power query", "business intelligence", "bi report",
+            "data model", "kpi", "visual report"
+        ],
+
+        "Excel": [
+            "excel", "spreadsheet", "pivot table", "vlookup",
+            "xlookup", "worksheet", "formulas", "charts"
+        ],
+
+        "Statistics": [
+            "statistics", "statistical analysis", "probability",
+            "hypothesis testing", "regression", "correlation",
+            "mean", "median", "standard deviation", "variance"
+        ],
+
+        "ETL": [
+            "etl", "extract", "transform", "load", "data pipeline",
+            "pipeline", "data cleaning", "data transformation",
+            "data preprocessing", "data wrangling"
+        ],
+
+        "Git": [
+            "git", "github", "version control", "repository",
+            "commit", "push", "pull request"
+        ],
+
+        "Cloud": [
+            "cloud", "azure", "aws", "google cloud", "gcp",
+            "cloud storage", "cloud database", "microsoft fabric"
+        ],
+
+        "Machine Learning": [
+            "machine learning", "scikit-learn", "sklearn",
+            "model training", "classification", "regression model",
+            "predictive model", "supervised learning",
+            "unsupervised learning", "random forest",
+            "decision tree", "logistic regression"
+        ],
+
+        "Artificial Intelligence": [
+            "artificial intelligence", "ai", "llm", "rag",
+            "chatbot", "generative ai", "prompt engineering",
+            "openai", "large language model"
+        ],
+
+        "Data Analysis": [
+            "data analysis", "analyze data", "data cleaning",
+            "data visualization", "exploratory data analysis",
+            "eda", "insights", "business insights",
+            "reporting", "trend analysis"
+        ],
+
+        "Data Visualization": [
+            "data visualization", "visualization", "charts",
+            "graphs", "plot", "dashboard", "matplotlib",
+            "power bi", "tableau"
+        ],
+
+        "Communication": [
+            "communication", "presentation", "presented",
+            "stakeholder", "stakeholders", "training",
+            "teaching", "explained", "report writing",
+            "business report"
+        ]
     }
 
     resume_text_lower = resume_text.lower()
