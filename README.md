@@ -310,6 +310,14 @@ Example:
 ```text
 Completed Skills: 2 of 5
 Progress Completion Score: 40%
+### Semantic Job-Resume Matching
+
+TalentBridge AI now compares resumes and job descriptions in two ways:
+
+- **Job Match Score**: compares detected skills from the resume and job description.
+- **Semantic Match Score**: uses TF-IDF similarity to compare the meaning of the resume text and job description.
+
+This helps identify candidates whose resume language may be different from the job posting but still has strong relevance.
 
 
 
