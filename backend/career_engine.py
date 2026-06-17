@@ -1,4 +1,6 @@
 # career_engine.py
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 required_skills = {
     "AI Engineer": {
@@ -729,3 +731,25 @@ def prioritize_missing_skills(missing_skills):
         )
 
     return priority_report
+def calculate_semantic_match_score(resume_text, job_description_text):
+    texts = [
+        resume_text,
+        job_description_text
+    ]
+
+    vectorizer = TfidfVectorizer(
+        stop_words="english",
+        ngram_range=(1, 2)
+    )
+
+    tfidf_matrix = vectorizer.fit_transform(texts)
+
+    similarity_score = cosine_similarity(
+        tfidf_matrix[0:1],
+        tfidf_matrix[1:2]
+    )[0][0]
+
+    semantic_score = round(similarity_score * 100, 2)
+
+    return semantic_score
+calculate_semantic_match_score = calculate_semantic_match_score
