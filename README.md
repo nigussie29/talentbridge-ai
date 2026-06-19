@@ -318,6 +318,18 @@ TalentBridge AI now compares resumes and job descriptions in two ways:
 - **Semantic Match Score**: uses TF-IDF similarity to compare the meaning of the resume text and job description.
 
 This helps identify candidates whose resume language may be different from the job posting but still has strong relevance.
+### Proof-Based Readiness Score
+
+TalentBridge AI goes beyond resume matching by measuring whether a candidate can prove their skills with real evidence.
+
+The Proof-Based Readiness Score combines:
+
+- Job Match Score
+- Semantic Match Score
+- Portfolio Evidence Score
+- Progress Completion Score
+
+This helps job seekers, recruiters, and training centers understand not only whether a resume matches a job, but whether the candidate has real proof of readiness through projects, GitHub links, dashboards, reports, or portfolio evidence.
 
 
 

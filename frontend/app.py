@@ -22,7 +22,8 @@ from career_engine import (
     generate_progress_tracker,
     calculate_improvement_score,
     prioritize_missing_skills,
-    calculate_semantic_match_score
+    calculate_semantic_match_score,
+    calculate_proof_based_readiness_score,
 )
 
 
@@ -31,7 +32,7 @@ skill_display_names = {
     "math_skill": "Mathematics Skill",
     "data_skill": "Data Analysis Skill",
     "ai_skill": "Artificial Intelligence Skill",
-    "communication_skill": "Communication Skill"
+    "communication_skill": "Communication Skill",
 }
 
 
@@ -47,10 +48,17 @@ def extract_text_from_pdf(uploaded_file):
     return text
 
 
+def initialize_session_state():
+    if "match_result" not in st.session_state:
+        st.session_state.match_result = None
+
+
+initialize_session_state()
+
 st.set_page_config(
     page_title="TalentBridge AI",
     page_icon="🤖",
-    layout="wide"
+    layout="wide",
 )
 
 st.markdown(
@@ -88,8 +96,8 @@ user_mode = st.sidebar.selectbox(
     [
         "Job Seeker",
         "HR / Recruiter",
-        "Training Center"
-    ]
+        "Training Center",
+    ],
 )
 
 target_career = st.sidebar.selectbox(
@@ -98,8 +106,8 @@ target_career = st.sidebar.selectbox(
         "AI Engineer",
         "Data Analyst",
         "Machine Learning Engineer",
-        "AI Education Specialist"
-    ]
+        "AI Education Specialist",
+    ],
 )
 
 if user_mode == "Job Seeker":
@@ -121,7 +129,7 @@ tab1, tab2, tab3, tab4 = st.tabs(
         "📄 Resume & Job Match",
         "📊 Career Readiness",
         "🚀 Product Vision",
-        "💼 Business Case"
+        "💼 Business Case",
     ]
 )
 
@@ -133,7 +141,7 @@ with tab1:
 
     uploaded_resume = st.file_uploader(
         "Upload your resume PDF",
-        type=["pdf"]
+        type=["pdf"],
     )
 
     pdf_text = ""
@@ -146,13 +154,13 @@ with tab1:
         "Paste your resume text here or use uploaded PDF text",
         value=pdf_text,
         height=220,
-        placeholder="Paste resume text, skills, experience, or project descriptions here..."
+        placeholder="Paste resume text, skills, experience, or project descriptions here...",
     )
 
     job_description_text = st.text_area(
         "Paste the job description here",
         height=220,
-        placeholder="Paste the job posting or job requirements here..."
+        placeholder="Paste the job posting or job requirements here...",
     )
 
     if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
@@ -168,165 +176,217 @@ with tab1:
             improvement_score = calculate_improvement_score(job_comparison)
             semantic_match_score = calculate_semantic_match_score(
                 resume_text,
-                job_description_text
+                job_description_text,
             )
-
             mode_report_text = generate_mode_report(
                 user_mode,
                 job_comparison,
-                hr_report
+                hr_report,
             )
 
-            st.subheader("Job Match Result")
+            st.session_state.match_result = {
+                "resume_text": resume_text,
+                "job_description_text": job_description_text,
+                "resume_skills": resume_skills,
+                "job_required_skills": job_required_skills,
+                "job_comparison": job_comparison,
+                "hr_report": hr_report,
+                "improvement_score": improvement_score,
+                "semantic_match_score": semantic_match_score,
+                "mode_report_text": mode_report_text,
+                "user_mode": user_mode,
+            }
 
-            metric_col1, metric_col2 = st.columns(2)
+    match_result = st.session_state.match_result
 
-            with metric_col1:
-                st.metric(
-                    label="Job Match Score",
-                    value=f"{job_comparison['match_score']}%"
-                )
+    if match_result is not None:
+        resume_skills = match_result["resume_skills"]
+        job_required_skills = match_result["job_required_skills"]
+        job_comparison = match_result["job_comparison"]
+        hr_report = match_result["hr_report"]
+        improvement_score = match_result["improvement_score"]
+        semantic_match_score = match_result["semantic_match_score"]
+        mode_report_text = match_result["mode_report_text"]
 
-            with metric_col2:
-                st.metric(
-                    label="Semantic Match Score",
-                    value=f"{semantic_match_score}%"
-                )
+        st.subheader("Job Match Result")
 
-            result_col1, result_col2 = st.columns(2)
+        metric_col1, metric_col2 = st.columns(2)
 
-            with result_col1:
-                st.write("**Resume Skills Detected:**")
-                if len(resume_skills) == 0:
-                    st.write("No resume skills detected.")
-                else:
-                    for skill in resume_skills:
-                        st.success(skill)
+        with metric_col1:
+            st.metric(
+                label="Job Match Score",
+                value=f"{job_comparison['match_score']}%",
+            )
 
-            with result_col2:
-                st.write("**Job Required Skills Detected:**")
-                if len(job_required_skills) == 0:
-                    st.write("No job skills detected.")
-                else:
-                    for skill in job_required_skills:
-                        st.info(skill)
+        with metric_col2:
+            st.metric(
+                label="Semantic Match Score",
+                value=f"{semantic_match_score}%",
+            )
 
-            st.write("**Matched Skills:**")
-            if len(job_comparison["matched_skills"]) == 0:
-                st.write("No matched skills found.")
+        result_col1, result_col2 = st.columns(2)
+
+        with result_col1:
+            st.write("**Resume Skills Detected:**")
+            if len(resume_skills) == 0:
+                st.write("No resume skills detected.")
             else:
-                for skill in job_comparison["matched_skills"]:
+                for skill in resume_skills:
                     st.success(skill)
 
-            st.write("**Missing Skills:**")
-            if len(job_comparison["missing_skills"]) == 0:
-                st.success("No missing skills. Strong match.")
+        with result_col2:
+            st.write("**Job Required Skills Detected:**")
+            if len(job_required_skills) == 0:
+                st.write("No job skills detected.")
             else:
-                for skill in job_comparison["missing_skills"]:
-                    st.warning(skill)
+                for skill in job_required_skills:
+                    st.info(skill)
 
-            st.subheader("Skill Gap Priority Level")
+        st.write("**Matched Skills:**")
+        if len(job_comparison["matched_skills"]) == 0:
+            st.write("No matched skills found.")
+        else:
+            for skill in job_comparison["matched_skills"]:
+                st.success(skill)
 
-            if len(job_comparison["missing_skills"]) == 0:
-                st.success("No missing skills to prioritize.")
-            else:
-                priority_report = prioritize_missing_skills(
-                    job_comparison["missing_skills"]
-                )
-                st.table(priority_report)
+        st.write("**Missing Skills:**")
+        if len(job_comparison["missing_skills"]) == 0:
+            st.success("No missing skills. Strong match.")
+        else:
+            for skill in job_comparison["missing_skills"]:
+                st.warning(skill)
 
-            st.subheader("Readiness Improvement Score")
+        st.subheader("Skill Gap Priority Level")
 
-            col_a, col_b, col_c = st.columns(3)
+        if len(job_comparison["missing_skills"]) == 0:
+            st.success("No missing skills to prioritize.")
+        else:
+            priority_report = prioritize_missing_skills(
+                job_comparison["missing_skills"]
+            )
+            st.table(priority_report)
 
-            with col_a:
-                st.metric(
-                    "Current Score",
-                    f"{improvement_score['current_score']}%"
-                )
+        st.subheader("Readiness Improvement Score")
 
-            with col_b:
-                st.metric(
-                    "After Training",
-                    f"{improvement_score['estimated_score_after_training']}%"
-                )
+        col_a, col_b, col_c = st.columns(3)
 
-            with col_c:
-                st.metric(
-                    "Improvement",
-                    f"+{improvement_score['improvement_potential']}%"
-                )
-
-            st.write(
-                "**Status Change:**",
-                f"{improvement_score['current_status']} → "
-                f"{improvement_score['estimated_status_after_training']}"
+        with col_a:
+            st.metric(
+                "Current Score",
+                f"{improvement_score['current_score']}%",
             )
 
-            st.subheader("Before-and-After Readiness History")
+        with col_b:
+            st.metric(
+                "After Training",
+                f"{improvement_score['estimated_score_after_training']}%",
+            )
 
-            readiness_history = [
-                {
-                    "Stage": "Before Training",
-                    "Score": f"{improvement_score['current_score']}%",
-                    "Status": improvement_score["current_status"]
-                },
-                {
-                    "Stage": "After Recommended Training",
-                    "Score": f"{improvement_score['estimated_score_after_training']}%",
-                    "Status": improvement_score["estimated_status_after_training"]
-                }
-            ]
+        with col_c:
+            st.metric(
+                "Improvement",
+                f"+{improvement_score['improvement_potential']}%",
+            )
 
-            st.table(readiness_history)
+        st.write(
+            "**Status Change:**",
+            f"{improvement_score['current_status']} → "
+            f"{improvement_score['estimated_status_after_training']}",
+        )
 
-            # -----------------------------
-            # Job Seeker Mode
-            # -----------------------------
-            if user_mode == "Job Seeker":
-                st.subheader("Personalized Course Plan")
+        st.subheader("Before-and-After Readiness History")
 
-                if len(job_comparison["missing_skills"]) == 0:
-                    st.success("You are a strong match. Start preparing for interviews.")
-                else:
-                    course_plan = generate_course_plan(job_comparison["missing_skills"])
+        readiness_history = [
+            {
+                "Stage": "Before Training",
+                "Score": f"{improvement_score['current_score']}%",
+                "Status": improvement_score["current_status"],
+            },
+            {
+                "Stage": "After Recommended Training",
+                "Score": f"{improvement_score['estimated_score_after_training']}%",
+                "Status": improvement_score["estimated_status_after_training"],
+            },
+        ]
 
-                    for skill, lessons in course_plan.items():
-                        st.markdown(f"### {skill}")
-                        for lesson in lessons:
-                            st.write(f"- {lesson}")
+        st.table(readiness_history)
 
-                st.subheader("Portfolio Evidence Checklist")
+        # -----------------------------
+        # Job Seeker Mode
+        # -----------------------------
+        if user_mode == "Job Seeker":
+            st.subheader("Personalized Course Plan")
 
-                if len(job_comparison["missing_skills"]) == 0:
-                    st.write("- Add your best 1–2 portfolio projects to your resume.")
-                    st.write("- Prepare interview stories for your strongest skills.")
-                else:
-                    for skill in job_comparison["missing_skills"]:
-                        st.write(f"- Build one small project that proves your {skill} skill.")
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success("You are a strong match. Start preparing for interviews.")
+            else:
+                course_plan = generate_course_plan(job_comparison["missing_skills"])
+
+                for skill, lessons in course_plan.items():
+                    st.markdown(f"### {skill}")
+                    for lesson in lessons:
+                        st.write(f"- {lesson}")
+
+            st.subheader("Portfolio Evidence Checklist")
+
+            if len(job_comparison["missing_skills"]) == 0:
+                st.write("- Add your best 1–2 portfolio projects to your resume.")
+                st.write("- Prepare interview stories for your strongest skills.")
+
+                proof_score = calculate_proof_based_readiness_score(
+                    job_comparison["match_score"],
+                    semantic_match_score,
+                    {},
+                    {},
+                )
+
+                st.subheader("Proof-Based Readiness Score")
+
+                proof_col1, proof_col2, proof_col3 = st.columns(3)
+
+                with proof_col1:
+                    st.metric(
+                        "Proof-Based Score",
+                        f"{proof_score['proof_based_score']}%",
+                    )
+
+                with proof_col2:
+                    st.metric(
+                        "Portfolio Evidence Score",
+                        f"{proof_score['portfolio_evidence_score']}%",
+                    )
+
+                with proof_col3:
+                    st.metric(
+                        "Progress Completion Score",
+                        f"{proof_score['progress_completion_score']}%",
+                    )
+
+                st.success(proof_score["readiness_level"])
+            else:
+                for skill in job_comparison["missing_skills"]:
+                    st.write(f"- Build one small project that proves your {skill} skill.")
 
                 st.subheader("Candidate Progress Tracker")
 
-                if len(job_comparison["missing_skills"]) == 0:
-                    st.success("No missing skills to track.")
-                else:
-                    progress_tracker = generate_progress_tracker(
-                        job_comparison["missing_skills"]
-                    )
-                    st.table(progress_tracker)
+                progress_tracker = generate_progress_tracker(
+                    job_comparison["missing_skills"]
+                )
+                st.table(progress_tracker)
 
-                    st.subheader("Portfolio Evidence Links and Progress Status")
+                st.subheader("Portfolio Evidence Links and Progress Status")
 
-                    evidence_links = {}
-                    progress_statuses = {}
+                evidence_links = {}
+                progress_statuses = {}
 
+                with st.form("portfolio_evidence_form"):
                     for skill in job_comparison["missing_skills"]:
                         st.markdown(f"### {skill}")
 
                         evidence_links[skill] = st.text_input(
                             f"Paste portfolio or GitHub link for {skill}",
                             placeholder="Example: https://github.com/username/project",
-                            key=f"evidence_link_{skill}"
+                            key=f"evidence_link_{skill}",
                         )
 
                         progress_statuses[skill] = st.selectbox(
@@ -334,130 +394,168 @@ with tab1:
                             [
                                 "Not Started",
                                 "In Progress",
-                                "Completed"
+                                "Completed",
                             ],
-                            key=f"progress_status_{skill}"
+                            key=f"progress_status_{skill}",
                         )
 
-                    if st.button("Generate Portfolio Evidence Summary"):
-                        st.subheader("Portfolio Evidence Summary")
+                    generate_evidence_summary = st.form_submit_button(
+                        "Generate Portfolio Evidence Summary"
+                    )
 
-                        evidence_report = "TalentBridge AI - Portfolio Evidence and Progress Report\n\n"
-                        completed_count = 0
-                        total_missing_skills = len(job_comparison["missing_skills"])
+                if generate_evidence_summary:
+                    st.subheader("Portfolio Evidence Summary")
 
-                        for skill in job_comparison["missing_skills"]:
-                            if progress_statuses[skill] == "Completed":
-                                completed_count += 1
+                    evidence_report = "TalentBridge AI - Portfolio Evidence and Progress Report\n\n"
+                    completed_count = 0
+                    total_missing_skills = len(job_comparison["missing_skills"])
 
-                        if total_missing_skills > 0:
-                            completion_score = round(
-                                (completed_count / total_missing_skills) * 100,
-                                2
-                            )
-                        else:
-                            completion_score = 100
+                    for skill in job_comparison["missing_skills"]:
+                        if progress_statuses[skill] == "Completed":
+                            completed_count += 1
 
-                        st.subheader("Progress Completion Score")
+                    if total_missing_skills > 0:
+                        completion_score = round(
+                            (completed_count / total_missing_skills) * 100,
+                            2,
+                        )
+                    else:
+                        completion_score = 100
 
-                        score_col1, score_col2, score_col3 = st.columns(3)
+                    st.subheader("Progress Completion Score")
 
-                        with score_col1:
-                            st.metric("Completed Skills", completed_count)
+                    score_col1, score_col2, score_col3 = st.columns(3)
 
-                        with score_col2:
-                            st.metric("Total Missing Skills", total_missing_skills)
+                    with score_col1:
+                        st.metric("Completed Skills", completed_count)
 
-                        with score_col3:
-                            st.metric("Completion Score", f"{completion_score}%")
+                    with score_col2:
+                        st.metric("Total Missing Skills", total_missing_skills)
 
-                        evidence_report += f"Completed Skills: {completed_count}\n"
-                        evidence_report += f"Total Missing Skills: {total_missing_skills}\n"
-                        evidence_report += f"Progress Completion Score: {completion_score}%\n\n"
+                    with score_col3:
+                        st.metric("Completion Score", f"{completion_score}%")
 
-                        for skill in job_comparison["missing_skills"]:
-                            link = evidence_links[skill]
-                            status = progress_statuses[skill]
+                    proof_score = calculate_proof_based_readiness_score(
+                        job_comparison["match_score"],
+                        semantic_match_score,
+                        evidence_links,
+                        progress_statuses,
+                    )
 
-                            st.write(f"**Missing Skill:** {skill}")
-                            st.write(f"**Portfolio Evidence Link:** {link}")
-                            st.write(f"**Progress Status:** {status}")
-                            st.divider()
+                    st.subheader("Proof-Based Readiness Score")
 
-                            evidence_report += f"Missing Skill: {skill}\n"
-                            evidence_report += f"Portfolio Evidence Link: {link}\n"
-                            evidence_report += f"Progress Status: {status}\n\n"
+                    proof_col1, proof_col2, proof_col3 = st.columns(3)
 
-                        st.download_button(
-                            label="Download Portfolio Evidence and Progress Report",
-                            data=evidence_report,
-                            file_name="talentbridge_portfolio_progress_report.txt",
-                            mime="text/plain"
+                    with proof_col1:
+                        st.metric(
+                            "Proof-Based Score",
+                            f"{proof_score['proof_based_score']}%",
                         )
 
-            # -----------------------------
-            # HR / Recruiter Mode
-            # -----------------------------
-            elif user_mode == "HR / Recruiter":
-                st.subheader("HR Candidate Report")
+                    with proof_col2:
+                        st.metric(
+                            "Portfolio Evidence Score",
+                            f"{proof_score['portfolio_evidence_score']}%",
+                        )
 
-                st.write("**Candidate Recommendation:**", hr_report["recommendation"])
-                st.write("**HR Decision:**", hr_report["decision"])
-                st.write("**Job Match Score:**", f"{hr_report['match_score']}%")
+                    with proof_col3:
+                        st.metric(
+                            "Progress Completion Score",
+                            f"{proof_score['progress_completion_score']}%",
+                        )
 
-                st.write("**Candidate Strengths:**")
-                if len(hr_report["strengths"]) == 0:
-                    st.write("No major strengths detected.")
-                else:
-                    for skill in hr_report["strengths"]:
-                        st.success(skill)
+                    st.success(proof_score["readiness_level"])
 
-                st.write("**Candidate Skill Gaps:**")
-                if len(hr_report["skill_gaps"]) == 0:
-                    st.success("No major gaps detected.")
-                else:
-                    for skill in hr_report["skill_gaps"]:
-                        st.warning(skill)
+                    evidence_report += f"Completed Skills: {completed_count}\n"
+                    evidence_report += f"Total Missing Skills: {total_missing_skills}\n"
+                    evidence_report += f"Progress Completion Score: {completion_score}%\n"
+                    evidence_report += f"Proof-Based Readiness Score: {proof_score['proof_based_score']}%\n"
+                    evidence_report += f"Portfolio Evidence Score: {proof_score['portfolio_evidence_score']}%\n"
+                    evidence_report += f"Proof Readiness Level: {proof_score['readiness_level']}\n\n"
 
-                st.write("**HR Summary:**")
-                st.info(hr_report["summary"])
+                    for skill in job_comparison["missing_skills"]:
+                        link = evidence_links[skill]
+                        status = progress_statuses[skill]
 
-                st.subheader("Recruiter Feedback Form")
+                        st.write(f"**Missing Skill:** {skill}")
+                        st.write(f"**Portfolio Evidence Link:** {link}")
+                        st.write(f"**Progress Status:** {status}")
+                        st.divider()
 
-                candidate_name = st.text_input(
-                    "Candidate Name",
-                    placeholder="Enter candidate name"
-                )
+                        evidence_report += f"Missing Skill: {skill}\n"
+                        evidence_report += f"Portfolio Evidence Link: {link}\n"
+                        evidence_report += f"Progress Status: {status}\n\n"
 
-                recruiter_decision = st.selectbox(
-                    "Recruiter Decision",
-                    [
-                        "Interview Ready",
-                        "Train Before Interview",
-                        "Not Ready Yet",
-                        "Needs More Portfolio Evidence"
-                    ]
-                )
+                    st.download_button(
+                        label="Download Portfolio Evidence and Progress Report",
+                        data=evidence_report,
+                        file_name="talentbridge_portfolio_progress_report.txt",
+                        mime="text/plain",
+                    )
 
-                recruiter_feedback = st.text_area(
-                    "Recruiter Feedback",
-                    placeholder="Write feedback for the candidate..."
-                )
+        # -----------------------------
+        # HR / Recruiter Mode
+        # -----------------------------
+        elif user_mode == "HR / Recruiter":
+            st.subheader("HR Candidate Report")
 
-                recommended_next_step = st.text_area(
-                    "Recommended Next Step",
-                    placeholder="Example: Complete ETL project and add GitHub link."
-                )
+            st.write("**Candidate Recommendation:**", hr_report["recommendation"])
+            st.write("**HR Decision:**", hr_report["decision"])
+            st.write("**Job Match Score:**", f"{hr_report['match_score']}%")
 
-                if st.button("Generate Recruiter Feedback Summary"):
-                    st.subheader("Recruiter Feedback Summary")
+            st.write("**Candidate Strengths:**")
+            if len(hr_report["strengths"]) == 0:
+                st.write("No major strengths detected.")
+            else:
+                for skill in hr_report["strengths"]:
+                    st.success(skill)
 
-                    st.write("**Candidate:**", candidate_name)
-                    st.write("**Decision:**", recruiter_decision)
-                    st.write("**Feedback:**", recruiter_feedback)
-                    st.write("**Recommended Next Step:**", recommended_next_step)
+            st.write("**Candidate Skill Gaps:**")
+            if len(hr_report["skill_gaps"]) == 0:
+                st.success("No major gaps detected.")
+            else:
+                for skill in hr_report["skill_gaps"]:
+                    st.warning(skill)
 
-                    recruiter_feedback_report = f"""
+            st.write("**HR Summary:**")
+            st.info(hr_report["summary"])
+
+            st.subheader("Recruiter Feedback Form")
+
+            candidate_name = st.text_input(
+                "Candidate Name",
+                placeholder="Enter candidate name",
+            )
+
+            recruiter_decision = st.selectbox(
+                "Recruiter Decision",
+                [
+                    "Interview Ready",
+                    "Train Before Interview",
+                    "Not Ready Yet",
+                    "Needs More Portfolio Evidence",
+                ],
+            )
+
+            recruiter_feedback = st.text_area(
+                "Recruiter Feedback",
+                placeholder="Write feedback for the candidate...",
+            )
+
+            recommended_next_step = st.text_area(
+                "Recommended Next Step",
+                placeholder="Example: Complete ETL project and add GitHub link.",
+            )
+
+            if st.button("Generate Recruiter Feedback Summary"):
+                st.subheader("Recruiter Feedback Summary")
+
+                st.write("**Candidate:**", candidate_name)
+                st.write("**Decision:**", recruiter_decision)
+                st.write("**Feedback:**", recruiter_feedback)
+                st.write("**Recommended Next Step:**", recommended_next_step)
+
+                recruiter_feedback_report = f"""
 TalentBridge AI - Recruiter Feedback Report
 
 Candidate Name:
@@ -475,81 +573,81 @@ Recommended Next Step:
 Generated by TalentBridge AI
 """
 
-                    st.download_button(
-                        label="Download Recruiter Feedback Report",
-                        data=recruiter_feedback_report,
-                        file_name="talentbridge_recruiter_feedback_report.txt",
-                        mime="text/plain"
-                    )
+                st.download_button(
+                    label="Download Recruiter Feedback Report",
+                    data=recruiter_feedback_report,
+                    file_name="talentbridge_recruiter_feedback_report.txt",
+                    mime="text/plain",
+                )
 
-            # -----------------------------
-            # Training Center Mode
-            # -----------------------------
+        # -----------------------------
+        # Training Center Mode
+        # -----------------------------
+        else:
+            st.subheader("Training Center Learning Pathway")
+
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success(
+                    "This learner is ready for advanced placement or interview preparation."
+                )
             else:
-                st.subheader("Training Center Learning Pathway")
+                course_plan = generate_course_plan(job_comparison["missing_skills"])
 
-                if len(job_comparison["missing_skills"]) == 0:
-                    st.success(
-                        "This learner is ready for advanced placement or interview preparation."
+                st.write("Recommended student learning pathway:")
+
+                week_number = 1
+
+                for skill, lessons in course_plan.items():
+                    st.markdown(f"### Week {week_number}: {skill}")
+                    for lesson in lessons:
+                        st.write(f"- {lesson}")
+                    week_number += 1
+
+            st.subheader("Candidate Progress Tracker")
+
+            if len(job_comparison["missing_skills"]) == 0:
+                st.success("No missing skills to track.")
+            else:
+                progress_tracker = generate_progress_tracker(
+                    job_comparison["missing_skills"]
+                )
+                st.table(progress_tracker)
+
+                st.subheader("Portfolio Evidence Links")
+
+                evidence_links = {}
+
+                for skill in job_comparison["missing_skills"]:
+                    evidence_links[skill] = st.text_input(
+                        f"Paste portfolio or GitHub link for {skill}",
+                        placeholder="Example: https://github.com/username/project",
+                        key=f"training_evidence_link_{skill}",
                     )
-                else:
-                    course_plan = generate_course_plan(job_comparison["missing_skills"])
 
-                    st.write("Recommended student learning pathway:")
+                if st.button("Generate Portfolio Evidence Summary"):
+                    st.subheader("Portfolio Evidence Summary")
 
-                    week_number = 1
+                    evidence_report = "TalentBridge AI - Portfolio Evidence Report\n\n"
 
-                    for skill, lessons in course_plan.items():
-                        st.markdown(f"### Week {week_number}: {skill}")
-                        for lesson in lessons:
-                            st.write(f"- {lesson}")
-                        week_number += 1
+                    for skill, link in evidence_links.items():
+                        st.write(f"**{skill}:** {link}")
 
-                st.subheader("Candidate Progress Tracker")
+                        evidence_report += f"Missing Skill: {skill}\n"
+                        evidence_report += f"Portfolio Evidence Link: {link}\n\n"
 
-                if len(job_comparison["missing_skills"]) == 0:
-                    st.success("No missing skills to track.")
-                else:
-                    progress_tracker = generate_progress_tracker(
-                        job_comparison["missing_skills"]
+                    st.download_button(
+                        label="Download Portfolio Evidence Report",
+                        data=evidence_report,
+                        file_name="talentbridge_portfolio_evidence_report.txt",
+                        mime="text/plain",
                     )
-                    st.table(progress_tracker)
 
-                    st.subheader("Portfolio Evidence Links")
-
-                    evidence_links = {}
-
-                    for skill in job_comparison["missing_skills"]:
-                        evidence_links[skill] = st.text_input(
-                            f"Paste portfolio or GitHub link for {skill}",
-                            placeholder="Example: https://github.com/username/project",
-                            key=f"training_evidence_link_{skill}"
-                        )
-
-                    if st.button("Generate Portfolio Evidence Summary"):
-                        st.subheader("Portfolio Evidence Summary")
-
-                        evidence_report = "TalentBridge AI - Portfolio Evidence Report\n\n"
-
-                        for skill, link in evidence_links.items():
-                            st.write(f"**{skill}:** {link}")
-
-                            evidence_report += f"Missing Skill: {skill}\n"
-                            evidence_report += f"Portfolio Evidence Link: {link}\n\n"
-
-                        st.download_button(
-                            label="Download Portfolio Evidence Report",
-                            data=evidence_report,
-                            file_name="talentbridge_portfolio_evidence_report.txt",
-                            mime="text/plain"
-                        )
-
-            st.download_button(
-                label="Download Full Mode Report",
-                data=mode_report_text,
-                file_name="talentbridge_full_mode_report.txt",
-                mime="text/plain"
-            )
+        st.download_button(
+            label="Download Full Mode Report",
+            data=mode_report_text,
+            file_name="talentbridge_full_mode_report.txt",
+            mime="text/plain",
+        )
 
     st.divider()
 
@@ -583,7 +681,7 @@ Generated by TalentBridge AI
                 st.subheader("Resume-Based Career Readiness")
                 st.metric(
                     "Resume Readiness Score",
-                    f"{resume_result['readiness_score']}%"
+                    f"{resume_result['readiness_score']}%",
                 )
                 st.write("Status:", resume_result["status"])
 
@@ -611,14 +709,14 @@ Generated by TalentBridge AI
 
                 resume_report_text = generate_text_report(
                     resume_result,
-                    skill_display_names
+                    skill_display_names,
                 )
 
                 st.download_button(
                     label="Download Resume-Based Career Report",
                     data=resume_report_text,
                     file_name="talentbridge_resume_report.txt",
-                    mime="text/plain"
+                    mime="text/plain",
                 )
 
 # ==================================================
@@ -642,7 +740,7 @@ with tab2:
         "Years of Experience",
         min_value=0,
         max_value=50,
-        value=1
+        value=1,
     )
 
     user_profile = {
@@ -651,7 +749,7 @@ with tab2:
         "data_skill": data_skill,
         "ai_skill": ai_skill,
         "communication_skill": communication_skill,
-        "experience_years": experience_years
+        "experience_years": experience_years,
     }
 
     if st.button("Analyze My Career Readiness", key="manual_readiness_button"):
@@ -694,7 +792,7 @@ with tab2:
             label="Download Career Report",
             data=report_text,
             file_name="talentbridge_career_report.txt",
-            mime="text/plain"
+            mime="text/plain",
         )
 
 # ==================================================
@@ -816,7 +914,15 @@ with tab4:
         ↓  
         Job Match Score  
         ↓  
+        Semantic Match Score  
+        ↓  
         Missing Skills  
+        ↓  
+        Skill Gap Priority Level  
+        ↓  
+        Readiness Improvement Score  
+        ↓  
+        Before-and-After Readiness History  
         ↓  
         Personalized Learning Path  
         ↓  
@@ -825,6 +931,8 @@ with tab4:
         Progress Status  
         ↓  
         Completion Score  
+        ↓  
+        Proof-Based Readiness Score  
         ↓  
         Recruiter Feedback Report  
         ↓  

@@ -753,3 +753,119 @@ def calculate_semantic_match_score(resume_text, job_description_text):
 
     return semantic_score
 calculate_semantic_match_score = calculate_semantic_match_score
+def calculate_proof_based_readiness_score(
+    job_match_score,
+    semantic_match_score,
+    evidence_links,
+    progress_statuses
+):
+    total_skills = len(progress_statuses)
+
+    if total_skills == 0:
+        portfolio_evidence_score = 100
+        progress_completion_score = 100
+    else:
+        completed_evidence_count = 0
+        completed_progress_count = 0
+
+        for skill in progress_statuses:
+            evidence_link = evidence_links.get(skill, "")
+            progress_status = progress_statuses.get(skill, "Not Started")
+
+            if evidence_link.strip() != "":
+                completed_evidence_count += 1
+
+            if progress_status == "Completed":
+                completed_progress_count += 1
+
+        portfolio_evidence_score = round(
+            (completed_evidence_count / total_skills) * 100,
+            2
+        )
+
+        progress_completion_score = round(
+            (completed_progress_count / total_skills) * 100,
+            2
+        )
+
+    proof_based_score = round(
+        (job_match_score * 0.40)
+        + (semantic_match_score * 0.20)
+        + (portfolio_evidence_score * 0.25)
+        + (progress_completion_score * 0.15),
+        2
+    )
+
+    if proof_based_score >= 85:
+        readiness_level = "Strong Proof of Readiness"
+    elif proof_based_score >= 70:
+        readiness_level = "Good Proof, Needs Minor Improvement"
+    elif proof_based_score >= 50:
+        readiness_level = "Developing Proof"
+    else:
+        readiness_level = "Weak Proof, Needs Portfolio Evidence"
+
+    return {
+        "proof_based_score": proof_based_score,
+        "portfolio_evidence_score": portfolio_evidence_score,
+        "progress_completion_score": progress_completion_score,
+        "readiness_level": readiness_level
+    }
+def calculate_proof_based_readiness_score(
+    job_match_score,
+    semantic_match_score,
+    evidence_links,
+    progress_statuses
+):
+    total_skills = len(progress_statuses)
+
+    if total_skills == 0:
+        portfolio_evidence_score = 100
+        progress_completion_score = 100
+    else:
+        completed_evidence_count = 0
+        completed_progress_count = 0
+
+        for skill in progress_statuses:
+            evidence_link = evidence_links.get(skill, "")
+            progress_status = progress_statuses.get(skill, "Not Started")
+
+            if evidence_link.strip() != "":
+                completed_evidence_count += 1
+
+            if progress_status == "Completed":
+                completed_progress_count += 1
+
+        portfolio_evidence_score = round(
+            (completed_evidence_count / total_skills) * 100,
+            2
+        )
+
+        progress_completion_score = round(
+            (completed_progress_count / total_skills) * 100,
+            2
+        )
+
+    proof_based_score = round(
+        (job_match_score * 0.40)
+        + (semantic_match_score * 0.20)
+        + (portfolio_evidence_score * 0.25)
+        + (progress_completion_score * 0.15),
+        2
+    )
+
+    if proof_based_score >= 85:
+        readiness_level = "Strong Proof of Readiness"
+    elif proof_based_score >= 70:
+        readiness_level = "Good Proof, Needs Minor Improvement"
+    elif proof_based_score >= 50:
+        readiness_level = "Developing Proof"
+    else:
+        readiness_level = "Weak Proof, Needs Portfolio Evidence"
+
+    return {
+        "proof_based_score": proof_based_score,
+        "portfolio_evidence_score": portfolio_evidence_score,
+        "progress_completion_score": progress_completion_score,
+        "readiness_level": readiness_level
+    }
