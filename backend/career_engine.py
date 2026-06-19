@@ -869,3 +869,58 @@ def calculate_proof_based_readiness_score(
         "progress_completion_score": progress_completion_score,
         "readiness_level": readiness_level
     }
+def screen_multiple_candidates(job_description_text, candidate_resumes):
+    job_required_skills = analyze_job_description(job_description_text)
+
+    screening_results = []
+
+    for candidate in candidate_resumes:
+        candidate_name = candidate.get("candidate_name", "Unknown Candidate")
+        resume_text = candidate.get("resume_text", "")
+
+        resume_skills = analyze_resume_text(resume_text)
+
+        job_comparison = compare_resume_to_job(
+            resume_skills,
+            job_required_skills
+        )
+
+        semantic_score = calculate_semantic_match_score(
+            resume_text,
+            job_description_text
+        )
+
+        final_screening_score = round(
+            (job_comparison["match_score"] * 0.60)
+            + (semantic_score * 0.40),
+            2
+        )
+
+        if final_screening_score >= 85:
+            recommendation = "Strong Interview Candidate"
+        elif final_screening_score >= 70:
+            recommendation = "Interview After Quick Review"
+        elif final_screening_score >= 50:
+            recommendation = "Train Before Interview"
+        else:
+            recommendation = "Not Ready Yet"
+
+        screening_results.append(
+            {
+                "Candidate Name": candidate_name,
+                "Job Match Score": job_comparison["match_score"],
+                "Semantic Match Score": semantic_score,
+                "Final Screening Score": final_screening_score,
+                "Matched Skills": ", ".join(job_comparison["matched_skills"]),
+                "Missing Skills": ", ".join(job_comparison["missing_skills"]),
+                "Recommendation": recommendation
+            }
+        )
+
+    screening_results = sorted(
+        screening_results,
+        key=lambda x: x["Final Screening Score"],
+        reverse=True
+    )
+
+    return screening_results
