@@ -330,6 +330,34 @@ The Proof-Based Readiness Score combines:
 - Progress Completion Score
 
 This helps job seekers, recruiters, and training centers understand not only whether a resume matches a job, but whether the candidate has real proof of readiness through projects, GitHub links, dashboards, reports, or portfolio evidence.
+### HR Batch Resume Screening
+
+TalentBridge AI can compare one job description against multiple candidate resumes and rank candidates by readiness.
+
+The HR Batch Screening feature provides:
+
+- Job Match Score
+- Semantic Match Score
+- Final Screening Score
+- Matched Skills
+- Missing Skills
+- Candidate Recommendation
+- Downloadable HR screening report
+
+This helps recruiters quickly identify strong candidates, candidates who need training, and candidates who are not ready yet.
+### Candidate Interview Readiness Report
+
+TalentBridge AI generates an interview readiness decision for the top-ranked candidate after HR batch screening.
+
+The report includes:
+
+- Interview Readiness Score
+- Final Decision
+- Missing Skills
+- Plain-English Summary
+- Recommended Next Step
+
+This helps HR teams decide whether to interview, train, request portfolio evidence, or reject a candidate.
 
 
 

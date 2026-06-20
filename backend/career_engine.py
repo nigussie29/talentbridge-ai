@@ -924,3 +924,117 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
     )
 
     return screening_results
+def generate_interview_readiness_report(
+    candidate_name,
+    job_match_score,
+    semantic_match_score,
+    missing_skills,
+    proof_based_score=None
+):
+    if proof_based_score is None:
+        final_score = round(
+            (job_match_score * 0.60) + (semantic_match_score * 0.40),
+            2
+        )
+    else:
+        final_score = round(
+            (job_match_score * 0.35)
+            + (semantic_match_score * 0.25)
+            + (proof_based_score * 0.40),
+            2
+        )
+
+    if final_score >= 85 and len(missing_skills) <= 1:
+        decision = "Interview Ready"
+    elif final_score >= 70:
+        decision = "Needs Portfolio Evidence"
+    elif final_score >= 50:
+        decision = "Train Before Interview"
+    else:
+        decision = "Not Ready Yet"
+
+    if len(missing_skills) == 0:
+        missing_skills_text = "No major missing skills detected."
+    else:
+        missing_skills_text = ", ".join(missing_skills)
+
+    summary = (
+        f"{candidate_name} received a final interview readiness score of "
+        f"{final_score}%. The current decision is: {decision}. "
+        f"Missing skills: {missing_skills_text}"
+    )
+
+    if decision == "Interview Ready":
+        next_step = "Move the candidate to interview."
+    elif decision == "Needs Portfolio Evidence":
+        next_step = "Ask the candidate to provide stronger GitHub, dashboard, or portfolio evidence."
+    elif decision == "Train Before Interview":
+        next_step = "Recommend a short training plan before interview."
+    else:
+        next_step = "Do not move forward yet. Candidate needs major skill development."
+
+    return {
+        "candidate_name": candidate_name,
+        "final_score": final_score,
+        "decision": decision,
+        "missing_skills": missing_skills_text,
+        "summary": summary,
+        "next_step": next_step
+    }
+def generate_interview_readiness_report(
+    candidate_name,
+    job_match_score,
+    semantic_match_score,
+    missing_skills,
+    proof_based_score=None
+):
+    if proof_based_score is None:
+        final_score = round(
+            (job_match_score * 0.60) + (semantic_match_score * 0.40),
+            2
+        )
+    else:
+        final_score = round(
+            (job_match_score * 0.35)
+            + (semantic_match_score * 0.25)
+            + (proof_based_score * 0.40),
+            2
+        )
+
+    if final_score >= 85 and len(missing_skills) <= 1:
+        decision = "Interview Ready"
+    elif final_score >= 70:
+        decision = "Needs Portfolio Evidence"
+    elif final_score >= 50:
+        decision = "Train Before Interview"
+    else:
+        decision = "Not Ready Yet"
+
+    if len(missing_skills) == 0:
+        missing_skills_text = "No major missing skills detected."
+    else:
+        missing_skills_text = ", ".join(missing_skills)
+
+    summary = (
+        f"{candidate_name} received a final interview readiness score of "
+        f"{final_score}%. The current decision is: {decision}. "
+        f"Missing skills: {missing_skills_text}"
+    )
+
+    if decision == "Interview Ready":
+        next_step = "Move the candidate to interview."
+    elif decision == "Needs Portfolio Evidence":
+        next_step = "Ask the candidate to provide stronger GitHub, dashboard, or portfolio evidence."
+    elif decision == "Train Before Interview":
+        next_step = "Recommend a short training plan before interview."
+    else:
+        next_step = "Do not move forward yet. Candidate needs major skill development."
+
+    return {
+        "candidate_name": candidate_name,
+        "final_score": final_score,
+        "decision": decision,
+        "missing_skills": missing_skills_text,
+        "summary": summary,
+        "next_step": next_step
+    }
