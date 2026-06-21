@@ -1139,7 +1139,25 @@ if st.button("Run HR Batch Screening"):
             )
 
             st.subheader("Ranked Candidate Results")
-            st.table(screening_results)
+
+            display_results = []
+
+            for candidate in screening_results:
+               display_results.append(
+        {
+            "Candidate Name": candidate["Candidate Name"],
+            "Job Match Score": f"{candidate['Job Match Score']:.2f}",
+            "Semantic Match Score": f"{candidate['Semantic Match Score']:.2f}",
+            "Final Screening Score": f"{candidate['Final Screening Score']:.2f}",
+            "Matched Skills": candidate["Matched Skills"],
+            "Missing Skills": candidate["Missing Skills"],
+            "Strong Evidence Skills": candidate["Strong Evidence Skills"],
+            "Weak Evidence Skills": candidate["Weak Evidence Skills"],
+            "Recommendation": candidate["Recommendation"]
+        }
+    )
+
+            st.table(display_results)
 
             best_candidate = screening_results[0]
 
