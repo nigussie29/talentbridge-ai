@@ -260,6 +260,49 @@ with feature_col3:
         unsafe_allow_html=True
     )
 
+feature_col4, feature_col5, feature_col6 = st.columns(3)
+
+with feature_col4:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Proof-Based Readiness</h3>
+            <p>
+            Measure readiness using job match, semantic match, portfolio evidence,
+            and progress completion.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_col5:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Personalized Learning Path</h3>
+            <p>
+            Turn missing skills into clear training steps, practice goals,
+            and portfolio project evidence.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_col6:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Recruiter Reports</h3>
+            <p>
+            Generate professional candidate reports with strengths, gaps,
+            recommendations, and next steps.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 # -----------------------------
 # Sidebar Controls
 # -----------------------------
