@@ -358,6 +358,17 @@ The report includes:
 - Recommended Next Step
 
 This helps HR teams decide whether to interview, train, request portfolio evidence, or reject a candidate.
+### Skill Confidence Scoring
+
+TalentBridge AI does not only detect whether a skill appears in a resume. It also evaluates the strength of the evidence behind that skill.
+
+The app classifies detected skills as:
+
+- **Strong Evidence**: the resume shows practical use, such as built, created, used, analyzed, or developed.
+- **Medium Evidence**: the resume suggests some project or experience exposure.
+- **Weak Evidence**: the resume only says learning, beginner, interested in, or basic exposure.
+
+This helps job seekers understand which skills are truly proven and which skills need stronger portfolio evidence.
 
 
 
