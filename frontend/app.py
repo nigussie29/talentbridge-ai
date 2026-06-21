@@ -212,6 +212,53 @@ with col3:
     )
 
 st.divider()
+st.markdown(
+    """
+    <div class="product-card">
+        <h2>Platform Feature Highlights</h2>
+        <p>
+        TalentBridge AI combines resume analysis, job matching, skill confidence,
+        portfolio proof, and HR screening into one career readiness system.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+feature_col1, feature_col2, feature_col3 = st.columns(3)
+
+with feature_col1:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Resume-Job Matching</h3>
+            <p>Compare resumes against job descriptions and calculate job readiness.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_col2:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Skill Confidence Scoring</h3>
+            <p>Identify whether skills are strongly proven or only weakly mentioned.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with feature_col3:
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>HR Batch Screening</h3>
+            <p>Rank multiple candidates and generate recruiter-ready reports.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # -----------------------------
 # Sidebar Controls
