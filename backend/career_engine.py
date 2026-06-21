@@ -885,6 +885,20 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
             job_required_skills
         )
 
+        skill_confidence_report = analyze_skill_confidence(
+            resume_text,
+            resume_skills
+        )
+
+        strong_skills = []
+        weak_skills = []
+
+        for skill_item in skill_confidence_report:
+            if skill_item["Confidence Level"] == "Strong Evidence":
+                strong_skills.append(skill_item["Skill"])
+            elif skill_item["Confidence Level"] == "Weak Evidence":
+                weak_skills.append(skill_item["Skill"])
+
         semantic_score = calculate_semantic_match_score(
             resume_text,
             job_description_text
@@ -913,6 +927,8 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
                 "Final Screening Score": final_screening_score,
                 "Matched Skills": ", ".join(job_comparison["matched_skills"]),
                 "Missing Skills": ", ".join(job_comparison["missing_skills"]),
+                "Strong Evidence Skills": ", ".join(strong_skills),
+                "Weak Evidence Skills": ", ".join(weak_skills),
                 "Recommendation": recommendation
             }
         )
@@ -924,6 +940,8 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
     )
 
     return screening_results
+
+
 def generate_interview_readiness_report(
     candidate_name,
     job_match_score,
