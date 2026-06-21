@@ -65,17 +65,83 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide",
 )
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #f8fafc;
+    }
+
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    h1 {
+        color: #0f172a;
+        font-weight: 800;
+    }
+
+    h2, h3 {
+        color: #1e293b;
+    }
+
+    .stMetric {
+        background-color: #ffffff;
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0px 2px 8px rgba(15, 23, 42, 0.06);
+    }
+
+    div[data-testid="stTabs"] button {
+        font-weight: 600;
+    }
+
+    .product-card {
+        background-color: #ffffff;
+        padding: 22px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0px 4px 14px rgba(15, 23, 42, 0.08);
+        margin-bottom: 20px;
+    }
+
+    .hero-box {
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+        padding: 32px;
+        border-radius: 20px;
+        color: white;
+        margin-bottom: 25px;
+    }
+
+    .hero-box h1 {
+        color: white;
+        font-size: 42px;
+        margin-bottom: 10px;
+    }
+
+    .hero-box p {
+        font-size: 18px;
+        color: #dbeafe;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown(
     """
-    # 🤖 TalentBridge AI
-
-    ### Career Readiness + Job Matching + Training Pathway
-
-    TalentBridge AI helps **job seekers**, **HR teams**, and **training centers**
-    understand career readiness, identify skill gaps, and create personalized
-    learning paths from real job descriptions.
-    """
+    <div class="hero-box">
+        <h1>🤖 TalentBridge AI</h1>
+        <p>
+        An AI-powered career readiness platform that connects job seekers,
+        recruiters, and training centers through resume-job matching,
+        skill confidence scoring, portfolio evidence, and interview readiness reports.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 col1, col2, col3 = st.columns(3)
