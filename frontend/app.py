@@ -1201,7 +1201,10 @@ if st.button("Run HR Batch Screening"):
                 report_text += f"Final Screening Score: {candidate['Final Screening Score']}%\n"
                 report_text += f"Matched Skills: {candidate['Matched Skills']}\n"
                 report_text += f"Missing Skills: {candidate['Missing Skills']}\n"
+                report_text += f"Strong Evidence Skills: {candidate['Strong Evidence Skills']}\n"
+                report_text += f"Weak Evidence Skills: {candidate['Weak Evidence Skills']}\n"
                 report_text += f"Recommendation: {candidate['Recommendation']}\n"
+               
                 report_text += "----------------------------------------\n\n"
 
             report_text += "Top Candidate Interview Readiness Report\n"

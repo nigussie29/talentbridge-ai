@@ -1074,7 +1074,11 @@ def analyze_skill_confidence(resume_text, detected_skills):
         "managed",
         "wrote",
         "generated",
-        "presented"
+        "presented",
+        "transformed",
+        "loaded",
+        "extracted",
+        "documented"
     ]
 
     medium_evidence_words = [
@@ -1085,7 +1089,10 @@ def analyze_skill_confidence(resume_text, detected_skills):
         "projects",
         "portfolio",
         "practice",
-        "familiar"
+        "familiar",
+        "completed",
+        "support",
+        "exposure"
     ]
 
     weak_evidence_words = [
@@ -1096,7 +1103,9 @@ def analyze_skill_confidence(resume_text, detected_skills):
         "basic",
         "studying",
         "exploring",
-        "introduced to"
+        "introduced to",
+        "currently improving",
+        "practicing"
     ]
 
     sentences = resume_text_lower.replace("\n", " ").split(".")
@@ -1105,26 +1114,40 @@ def analyze_skill_confidence(resume_text, detected_skills):
 
     for skill in detected_skills:
         skill_lower = skill.lower()
-        matching_sentence = ""
+
+        matching_sentences = []
 
         for sentence in sentences:
             if skill_lower in sentence:
-                matching_sentence = sentence
-                break
+                matching_sentences.append(sentence)
 
-        if matching_sentence == "":
+        if len(matching_sentences) == 0:
             confidence = "Weak Evidence"
             reason = "Skill detected indirectly, but no direct resume sentence proves it."
         else:
-            if any(word in matching_sentence for word in weak_evidence_words):
+            has_strong_evidence = False
+            has_medium_evidence = False
+            has_weak_evidence = False
+
+            for sentence in matching_sentences:
+                if any(word in sentence for word in strong_evidence_words):
+                    has_strong_evidence = True
+
+                if any(word in sentence for word in medium_evidence_words):
+                    has_medium_evidence = True
+
+                if any(word in sentence for word in weak_evidence_words):
+                    has_weak_evidence = True
+
+            if has_strong_evidence:
+                confidence = "Strong Evidence"
+                reason = "Resume includes action words showing practical use of this skill."
+            elif has_medium_evidence:
+                confidence = "Medium Evidence"
+                reason = "Resume suggests project, portfolio, or experience exposure."
+            elif has_weak_evidence:
                 confidence = "Weak Evidence"
                 reason = "Resume suggests learning or beginner-level exposure."
-            elif any(word in matching_sentence for word in strong_evidence_words):
-                confidence = "Strong Evidence"
-                reason = "Resume uses action words showing practical skill use."
-            elif any(word in matching_sentence for word in medium_evidence_words):
-                confidence = "Medium Evidence"
-                reason = "Resume suggests some experience or project exposure."
             else:
                 confidence = "Medium Evidence"
                 reason = "Skill is mentioned, but evidence strength is unclear."
