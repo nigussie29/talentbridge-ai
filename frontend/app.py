@@ -167,13 +167,49 @@ st.markdown(
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("For Job Seekers", "Skill Gaps")
+    st.markdown(
+        """
+        <div class="product-card">
+            <small>For Job Seekers</small>
+            <h2>Close Skill Gaps</h2>
+            <p>
+            Compare your resume to real job descriptions, identify missing skills,
+            and follow a personalized learning path to become job-ready.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 with col2:
-    st.metric("For HR Teams", "Candidate Fit")
+    st.markdown(
+        """
+        <div class="product-card">
+            <small>For HR Teams</small>
+            <h2>Rank Candidate Fit</h2>
+            <p>
+            Screen multiple resumes, compare candidate readiness, and see which
+            skills are strongly proven versus weakly mentioned.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 with col3:
-    st.metric("For Training Centers", "Learning Paths")
+    st.markdown(
+        """
+        <div class="product-card">
+            <small>For Training Centers</small>
+            <h2>Build Learning Paths</h2>
+            <p>
+            Turn missing skills into structured training plans, portfolio projects,
+            and measurable readiness improvement.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 st.divider()
 
