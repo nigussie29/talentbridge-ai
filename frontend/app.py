@@ -69,7 +69,11 @@ st.markdown(
     """
     <style>
     .main {
-        background-color: #f8fafc;
+        background-color: #020617;
+    }
+
+    .stApp {
+        background-color: #020617;
     }
 
     .block-container {
@@ -78,20 +82,24 @@ st.markdown(
     }
 
     h1 {
-        color: #0f172a;
+        color: #f8fafc;
         font-weight: 800;
     }
 
     h2, h3 {
-        color: #1e293b;
+        color: #f8fafc;
+    }
+
+    p, li, label {
+        color: #e5e7eb;
     }
 
     .stMetric {
-        background-color: #ffffff;
+        background-color: #111827;
         padding: 16px;
         border-radius: 14px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0px 2px 8px rgba(15, 23, 42, 0.06);
+        border: 1px solid #334155;
+        box-shadow: 0px 2px 8px rgba(15, 23, 42, 0.35);
     }
 
     div[data-testid="stTabs"] button {
@@ -99,12 +107,24 @@ st.markdown(
     }
 
     .product-card {
-        background-color: #ffffff;
+        background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
         padding: 22px;
         border-radius: 16px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0px 4px 14px rgba(15, 23, 42, 0.08);
+        border: 1px solid #334155;
+        box-shadow: 0px 4px 14px rgba(15, 23, 42, 0.35);
         margin-bottom: 20px;
+        color: #f8fafc;
+    }
+
+    .product-card h1,
+    .product-card h2,
+    .product-card h3,
+    .product-card p {
+        color: #f8fafc;
+    }
+
+    .product-card small {
+        color: #cbd5e1;
     }
 
     .hero-box {
