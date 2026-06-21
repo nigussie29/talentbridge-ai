@@ -25,7 +25,9 @@ from career_engine import (
     calculate_semantic_match_score,
     calculate_proof_based_readiness_score,
     screen_multiple_candidates,
-    generate_interview_readiness_report
+    generate_interview_readiness_report,
+    analyze_skill_confidence
+
 
 )
 
@@ -235,8 +237,17 @@ with tab1:
             if len(resume_skills) == 0:
                 st.write("No resume skills detected.")
             else:
-                for skill in resume_skills:
-                    st.success(skill)
+                    for skill in resume_skills:
+                        st.success(skill)
+
+                    st.subheader("Skill Confidence Scoring")
+
+                    skill_confidence_report = analyze_skill_confidence(
+                        resume_text,
+                        resume_skills
+                    )
+
+                    st.table(skill_confidence_report)
 
         with result_col2:
             st.write("**Job Required Skills Detected:**")

@@ -1038,3 +1038,85 @@ def generate_interview_readiness_report(
         "summary": summary,
         "next_step": next_step
     }
+def analyze_skill_confidence(resume_text, detected_skills):
+    resume_text_lower = resume_text.lower()
+
+    strong_evidence_words = [
+        "built",
+        "created",
+        "developed",
+        "implemented",
+        "designed",
+        "used",
+        "applied",
+        "analyzed",
+        "cleaned",
+        "automated",
+        "deployed",
+        "managed",
+        "wrote",
+        "generated",
+        "presented"
+    ]
+
+    medium_evidence_words = [
+        "experience",
+        "worked with",
+        "hands-on",
+        "project",
+        "projects",
+        "portfolio",
+        "practice",
+        "familiar"
+    ]
+
+    weak_evidence_words = [
+        "learning",
+        "currently learning",
+        "interested",
+        "beginner",
+        "basic",
+        "studying",
+        "exploring",
+        "introduced to"
+    ]
+
+    sentences = resume_text_lower.replace("\n", " ").split(".")
+
+    confidence_results = []
+
+    for skill in detected_skills:
+        skill_lower = skill.lower()
+        matching_sentence = ""
+
+        for sentence in sentences:
+            if skill_lower in sentence:
+                matching_sentence = sentence
+                break
+
+        if matching_sentence == "":
+            confidence = "Weak Evidence"
+            reason = "Skill detected indirectly, but no direct resume sentence proves it."
+        else:
+            if any(word in matching_sentence for word in weak_evidence_words):
+                confidence = "Weak Evidence"
+                reason = "Resume suggests learning or beginner-level exposure."
+            elif any(word in matching_sentence for word in strong_evidence_words):
+                confidence = "Strong Evidence"
+                reason = "Resume uses action words showing practical skill use."
+            elif any(word in matching_sentence for word in medium_evidence_words):
+                confidence = "Medium Evidence"
+                reason = "Resume suggests some experience or project exposure."
+            else:
+                confidence = "Medium Evidence"
+                reason = "Skill is mentioned, but evidence strength is unclear."
+
+        confidence_results.append(
+            {
+                "Skill": skill,
+                "Confidence Level": confidence,
+                "Reason": reason
+            }
+        )
+
+    return confidence_results
