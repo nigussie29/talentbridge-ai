@@ -57,14 +57,62 @@ def initialize_session_state():
     if "match_result" not in st.session_state:
         st.session_state.match_result = None
 
+    if "logged_in" not in st.session_state:
+        st.session_state.logged_in = False
+
+    if "username" not in st.session_state:
+        st.session_state.username = ""
+
 
 initialize_session_state()
-
 st.set_page_config(
     page_title="TalentBridge AI",
     page_icon="🤖",
     layout="wide",
 )
+
+
+
+def login_screen():
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    if st.button("Login"):
+        if username == "admin" and password == "talentbridge123":
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.rerun()
+        else:
+            st.error("Invalid username or password.")
+
+
+def logout_button():
+    with st.sidebar:
+        st.write(f"Logged in as: {st.session_state.username}")
+
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.username = ""
+            st.rerun()
+
+
+if not st.session_state.logged_in:
+    login_screen()
+    st.stop()
+
+logout_button()
+st.markdown(
+        """
+        <div class="hero-box">
+            <h1>🔐 TalentBridge AI Login</h1>
+            <p>Please log in to access the career readiness platform.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
 st.markdown(
     """
     <style>
