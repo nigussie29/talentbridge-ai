@@ -369,6 +369,23 @@ The app classifies detected skills as:
 - **Weak Evidence**: the resume only says learning, beginner, interested in, or basic exposure.
 
 This helps job seekers understand which skills are truly proven and which skills need stronger portfolio evidence.
+### HR Batch Screening with Skill Confidence Evidence
+
+TalentBridge AI can screen multiple candidate resumes against one job description and rank candidates by readiness.
+
+The HR batch screening report includes:
+
+- Job Match Score
+- Semantic Match Score
+- Final Screening Score
+- Matched Skills
+- Missing Skills
+- Strong Evidence Skills
+- Weak Evidence Skills
+- Candidate Recommendation
+- Interview Readiness Report
+
+This helps recruiters see not only which skills are listed in a resume, but also whether those skills are strongly proven or weakly mentioned.
 
 
 
