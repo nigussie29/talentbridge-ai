@@ -161,9 +161,17 @@ def analyze_resume_text(resume_text):
         ],
 
         "Artificial Intelligence": [
-            "artificial intelligence", "ai", "llm", "rag",
-            "chatbot", "generative ai", "prompt engineering",
-            "openai", "large language model"
+            "artificial intelligence",
+            "generative ai",
+            "llm",
+            "rag",
+            "chatbot",
+            "prompt engineering",
+            "openai",
+            "large language model",
+            "ai model",
+            "ai system",
+            "ai application"
         ],
 
         "Data Analysis": [
@@ -197,6 +205,7 @@ def analyze_resume_text(resume_text):
                 break
 
     return detected_skills
+
 def create_profile_from_resume(detected_skills):
     profile = {
         "python_skill": 1,
@@ -268,7 +277,17 @@ def analyze_job_description(job_description_text):
         "SQL": ["sql", "database", "mysql", "postgresql"],
         "Power BI": ["power bi", "dashboard", "dax"],
         "Machine Learning": ["machine learning", "scikit-learn", "model training"],
-        "Artificial Intelligence": ["artificial intelligence", "ai", "llm", "rag", "chatbot"],
+        "Artificial Intelligence": [
+            "artificial intelligence",
+            "generative ai",
+            "llm",
+            "large language model",
+            "rag",
+            "chatbot",
+            "ai model",
+            "ai system",
+            "ai application"
+        ],
         "Data Analysis": ["data analysis", "data cleaning", "data visualization"],
         "Communication": ["communication", "presentation", "stakeholder", "reporting"],
         "Excel": ["excel", "spreadsheet", "pivot table"],
@@ -893,11 +912,16 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
         strong_skills = []
         weak_skills = []
 
+        matched_skills = job_comparison["matched_skills"]
+
         for skill_item in skill_confidence_report:
-            if skill_item["Confidence Level"] == "Strong Evidence":
-                strong_skills.append(skill_item["Skill"])
-            elif skill_item["Confidence Level"] == "Weak Evidence":
-                weak_skills.append(skill_item["Skill"])
+            skill_name = skill_item["Skill"]
+
+            if skill_name in matched_skills:
+                if skill_item["Confidence Level"] == "Strong Evidence":
+                    strong_skills.append(skill_name)
+                elif skill_item["Confidence Level"] == "Weak Evidence":
+                    weak_skills.append(skill_name)
 
         semantic_score = calculate_semantic_match_score(
             resume_text,
@@ -922,9 +946,9 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
         screening_results.append(
             {
                 "Candidate Name": candidate_name,
-                "Job Match Score": job_comparison["match_score"],
-                "Semantic Match Score": semantic_score,
-                "Final Screening Score": final_screening_score,
+                "Job Match Score": round(job_comparison["match_score"], 2),
+                "Semantic Match Score": round(semantic_score, 2),
+                "Final Screening Score": round(final_screening_score, 2),
                 "Matched Skills": ", ".join(job_comparison["matched_skills"]),
                 "Missing Skills": ", ".join(job_comparison["missing_skills"]),
                 "Strong Evidence Skills": ", ".join(strong_skills),

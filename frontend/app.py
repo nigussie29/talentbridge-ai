@@ -357,28 +357,33 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 with tab1:
     st.header("Resume & Job Description Matching")
 
-    uploaded_resume = st.file_uploader(
-        "Upload your resume PDF",
-        type=["pdf"],
+    st.write(
+        "Upload or paste a resume, then paste a job description to compare candidate readiness."
     )
 
-    pdf_text = ""
+    input_col1, input_col2 = st.columns(2)
 
-    if uploaded_resume is not None:
-        pdf_text = extract_text_from_pdf(uploaded_resume)
-        st.success("PDF resume uploaded and text extracted.")
+with input_col1:
+    st.subheader("Candidate Resume")
+
+    uploaded_resume = st.file_uploader(
+        "Upload your resume PDF",
+        type=["pdf"]
+    )
 
     resume_text = st.text_area(
         "Paste your resume text here or use uploaded PDF text",
-        value=pdf_text,
-        height=220,
-        placeholder="Paste resume text, skills, experience, or project descriptions here...",
+        height=260,
+        placeholder="Paste resume text, skills, experience, or project descriptions here..."
     )
+
+with input_col2:
+    st.subheader("Target Job Description")
 
     job_description_text = st.text_area(
         "Paste the job description here",
-        height=220,
-        placeholder="Paste the job posting or job requirements here...",
+        height=355,
+        placeholder="Paste the job posting or job requirements here..."
     )
 
     if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
@@ -1188,204 +1193,229 @@ with tab4:
 
 # TAB 5: HR BATCH RESUME SCREENING
 
-# ==================================================
-
+# ================================================
 with tab5:
     st.header("HR Batch Resume Screening")
 
-st.write(
-    "Use this section to compare one job description against multiple candidate resumes "
-    "and rank candidates by readiness."
-)
-
-batch_job_description = st.text_area(
-    "Paste the job description for batch screening",
-    height=200,
-    placeholder="Paste the job description here...",
-    key="batch_job_description"
-)
-
-st.subheader("Candidate Resumes")
-
-candidate_1_name = st.text_input(
-    "Candidate 1 Name",
-    value="Candidate 1",
-    key="candidate_1_name"
-)
-
-candidate_1_resume = st.text_area(
-    "Candidate 1 Resume",
-    height=180,
-    placeholder="Paste Candidate 1 resume text here...",
-    key="candidate_1_resume"
-)
-
-candidate_2_name = st.text_input(
-    "Candidate 2 Name",
-    value="Candidate 2",
-    key="candidate_2_name"
-)
-
-candidate_2_resume = st.text_area(
-    "Candidate 2 Resume",
-    height=180,
-    placeholder="Paste Candidate 2 resume text here...",
-    key="candidate_2_resume"
-)
-
-candidate_3_name = st.text_input(
-    "Candidate 3 Name",
-    value="Candidate 3",
-    key="candidate_3_name"
-)
-
-candidate_3_resume = st.text_area(
-    "Candidate 3 Resume",
-    height=180,
-    placeholder="Paste Candidate 3 resume text here...",
-    key="candidate_3_resume"
-)
-
-if st.button("Run HR Batch Screening"):
-    if batch_job_description.strip() == "":
-        st.warning("Please paste a job description first.")
-    else:
-        candidate_resumes = []
-
-        if candidate_1_resume.strip() != "":
-            candidate_resumes.append(
-                {
-                    "candidate_name": candidate_1_name,
-                    "resume_text": candidate_1_resume
-                }
-            )
-
-        if candidate_2_resume.strip() != "":
-            candidate_resumes.append(
-                {
-                    "candidate_name": candidate_2_name,
-                    "resume_text": candidate_2_resume
-                }
-            )
-
-        if candidate_3_resume.strip() != "":
-            candidate_resumes.append(
-                {
-                    "candidate_name": candidate_3_name,
-                    "resume_text": candidate_3_resume
-                }
-            )
-
-        if len(candidate_resumes) == 0:
-            st.warning("Please paste at least one candidate resume.")
-        else:
-            screening_results = screen_multiple_candidates(
-                batch_job_description,
-                candidate_resumes
-            )
-
-            st.subheader("Ranked Candidate Results")
-
-            display_results = []
-
-            for candidate in screening_results:
-               display_results.append(
-        {
-            "Candidate Name": candidate["Candidate Name"],
-            "Job Match Score": f"{candidate['Job Match Score']:.2f}",
-            "Semantic Match Score": f"{candidate['Semantic Match Score']:.2f}",
-            "Final Screening Score": f"{candidate['Final Screening Score']:.2f}",
-            "Matched Skills": candidate["Matched Skills"],
-            "Missing Skills": candidate["Missing Skills"],
-            "Strong Evidence Skills": candidate["Strong Evidence Skills"],
-            "Weak Evidence Skills": candidate["Weak Evidence Skills"],
-            "Recommendation": candidate["Recommendation"]
-        }
+    st.write(
+        "Compare one job description against multiple candidate resumes and rank candidates by readiness."
     )
 
-            st.table(display_results)
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Step 1: Paste Job Description</h3>
+            <p>
+            Add the target role requirements. TalentBridge AI will compare each candidate
+            against the required skills, semantic match, and skill confidence evidence.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-            best_candidate = screening_results[0]
+    batch_job_description = st.text_area(
+        "Job Description",
+        height=220,
+        placeholder="Paste the job description here...",
+        key="batch_job_description"
+    )
 
-            st.subheader("Top Candidate Recommendation")
+    st.markdown(
+        """
+        <div class="product-card">
+            <h3>Step 2: Add Candidate Resumes</h3>
+            <p>
+            Paste up to three candidate resumes. The app will rank candidates and generate
+            a recruiter-ready screening report.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-            st.success(
-                f"{best_candidate['Candidate Name']} is the top ranked candidate "
-                f"with a final screening score of {best_candidate['Final Screening Score']}%."
-            )
+    candidate_col1, candidate_col2, candidate_col3 = st.columns(3)
 
-            missing_skills_for_interview = []
+    with candidate_col1:
+        candidate_1_name = st.text_input(
+            "Candidate 1 Name",
+            value="Candidate 1",
+            key="candidate_1_name"
+        )
 
-            if best_candidate["Missing Skills"] != "":
-                missing_skills_for_interview = best_candidate["Missing Skills"].split(", ")
+        candidate_1_resume = st.text_area(
+            "Candidate 1 Resume",
+            height=300,
+            placeholder="Paste Candidate 1 resume text here...",
+            key="candidate_1_resume"
+        )
 
-            interview_report = generate_interview_readiness_report(
-                best_candidate["Candidate Name"],
-                best_candidate["Job Match Score"],
-                best_candidate["Semantic Match Score"],
-                missing_skills_for_interview
-            )
+    with candidate_col2:
+        candidate_2_name = st.text_input(
+            "Candidate 2 Name",
+            value="Candidate 2",
+            key="candidate_2_name"
+        )
 
-            st.subheader("Candidate Interview Readiness Report")
+        candidate_2_resume = st.text_area(
+            "Candidate 2 Resume",
+            height=300,
+            placeholder="Paste Candidate 2 resume text here...",
+            key="candidate_2_resume"
+        )
 
-            st.metric(
-                "Interview Readiness Score",
-                f"{interview_report['final_score']}%"
-            )
+    with candidate_col3:
+        candidate_3_name = st.text_input(
+            "Candidate 3 Name",
+            value="Candidate 3",
+            key="candidate_3_name"
+        )
 
-            st.write("**Decision:**", interview_report["decision"])
-            st.write("**Missing Skills:**", interview_report["missing_skills"])
-            st.info(interview_report["summary"])
-            st.success(interview_report["next_step"])
+        candidate_3_resume = st.text_area(
+            "Candidate 3 Resume",
+            height=300,
+            placeholder="Paste Candidate 3 resume text here...",
+            key="candidate_3_resume"
+        )
+    if st.button("Run HR Batch Screening"):
+        if batch_job_description.strip() == "":
+            st.warning("Please paste a job description first.")
+        else:
+            candidate_resumes = []
 
-            report_text = "========================================\n"
-            report_text += "TalentBridge AI - HR Batch Screening Report\n"
-            report_text += "========================================\n\n"
+            if candidate_1_resume.strip() != "":
+                candidate_resumes.append(
+                    {
+                        "candidate_name": candidate_1_name,
+                        "resume_text": candidate_1_resume
+                    }
+                )
 
-            report_text += "Executive Summary\n"
-            report_text += "-----------------\n"
-            report_text += (
-                "This report compares one job description against multiple candidate resumes. "
-                "Candidates are ranked using Job Match Score, Semantic Match Score, and Final Screening Score.\n\n"
-            )
+            if candidate_2_resume.strip() != "":
+                candidate_resumes.append(
+                    {
+                        "candidate_name": candidate_2_name,
+                        "resume_text": candidate_2_resume
+                    }
+                )
 
-            report_text += "Top Candidate\n"
-            report_text += "-------------\n"
-            report_text += f"Candidate Name: {best_candidate['Candidate Name']}\n"
-            report_text += f"Final Screening Score: {best_candidate['Final Screening Score']}%\n"
-            report_text += f"Recommendation: {best_candidate['Recommendation']}\n\n"
+            if candidate_3_resume.strip() != "":
+                candidate_resumes.append(
+                    {
+                        "candidate_name": candidate_3_name,
+                        "resume_text": candidate_3_resume
+                    }
+                )
 
-            report_text += "Ranked Candidate Results\n"
-            report_text += "------------------------\n\n"
+            if len(candidate_resumes) == 0:
+                st.warning("Please paste at least one candidate resume.")
+            else:
+                screening_results = screen_multiple_candidates(
+                    batch_job_description,
+                    candidate_resumes
+                )
 
-            for index, candidate in enumerate(screening_results, start=1):
-                report_text += f"Rank {index}: {candidate['Candidate Name']}\n"
-                report_text += f"Job Match Score: {candidate['Job Match Score']}%\n"
-                report_text += f"Semantic Match Score: {candidate['Semantic Match Score']}%\n"
-                report_text += f"Final Screening Score: {candidate['Final Screening Score']}%\n"
-                report_text += f"Matched Skills: {candidate['Matched Skills']}\n"
-                report_text += f"Missing Skills: {candidate['Missing Skills']}\n"
-                report_text += f"Strong Evidence Skills: {candidate['Strong Evidence Skills']}\n"
-                report_text += f"Weak Evidence Skills: {candidate['Weak Evidence Skills']}\n"
-                report_text += f"Recommendation: {candidate['Recommendation']}\n"
-               
-                report_text += "----------------------------------------\n\n"
+                st.subheader("Ranked Candidate Results")
 
-            report_text += "Top Candidate Interview Readiness Report\n"
-            report_text += "----------------------------------------\n"
-            report_text += f"Candidate Name: {interview_report['candidate_name']}\n"
-            report_text += f"Interview Readiness Score: {interview_report['final_score']}%\n"
-            report_text += f"Decision: {interview_report['decision']}\n"
-            report_text += f"Missing Skills: {interview_report['missing_skills']}\n"
-            report_text += f"Summary: {interview_report['summary']}\n"
-            report_text += f"Recommended Next Step: {interview_report['next_step']}\n\n"
+                display_results = []
 
-            report_text += "Generated by TalentBridge AI\n"
-            report_text += "Career Readiness + Job Matching + Training Pathway\n"
-            st.download_button(
-                label="Download HR Batch Screening Report",
-                data=report_text,
-                file_name="talentbridge_hr_batch_screening_report.txt",
-                mime="text/plain"
-            )
+                for candidate in screening_results:
+                    display_results.append(
+                        {
+                            "Candidate Name": candidate["Candidate Name"],
+                            "Job Match Score": f"{candidate['Job Match Score']:.2f}",
+                            "Semantic Match Score": f"{candidate['Semantic Match Score']:.2f}",
+                            "Final Screening Score": f"{candidate['Final Screening Score']:.2f}",
+                            "Matched Skills": candidate["Matched Skills"],
+                            "Missing Skills": candidate["Missing Skills"],
+                            "Strong Evidence Skills": candidate["Strong Evidence Skills"],
+                            "Weak Evidence Skills": candidate["Weak Evidence Skills"],
+                            "Recommendation": candidate["Recommendation"]
+                        }
+                    )
 
+                st.table(display_results)
+
+                best_candidate = screening_results[0]
+
+                st.subheader("Top Candidate Recommendation")
+
+                st.success(
+                    f"{best_candidate['Candidate Name']} is the top ranked candidate "
+                    f"with a final screening score of {best_candidate['Final Screening Score']}%."
+                )
+
+                missing_skills_for_interview = []
+
+                if best_candidate["Missing Skills"] != "":
+                    missing_skills_for_interview = best_candidate["Missing Skills"].split(", ")
+
+                interview_report = generate_interview_readiness_report(
+                    best_candidate["Candidate Name"],
+                    best_candidate["Job Match Score"],
+                    best_candidate["Semantic Match Score"],
+                    missing_skills_for_interview
+                )
+
+                st.subheader("Candidate Interview Readiness Report")
+
+                st.metric(
+                    "Interview Readiness Score",
+                    f"{interview_report['final_score']}%"
+                )
+
+                st.write("**Decision:**", interview_report["decision"])
+                st.write("**Missing Skills:**", interview_report["missing_skills"])
+                st.info(interview_report["summary"])
+                st.success(interview_report["next_step"])
+
+                report_text = "========================================\n"
+                report_text += "TalentBridge AI - HR Batch Screening Report\n"
+                report_text += "========================================\n\n"
+
+                report_text += "Executive Summary\n"
+                report_text += "-----------------\n"
+                report_text += (
+                    "This report compares one job description against multiple candidate resumes. "
+                    "Candidates are ranked using Job Match Score, Semantic Match Score, and Final Screening Score.\n\n"
+                )
+
+                report_text += "Top Candidate\n"
+                report_text += "-------------\n"
+                report_text += f"Candidate Name: {best_candidate['Candidate Name']}\n"
+                report_text += f"Final Screening Score: {best_candidate['Final Screening Score']}%\n"
+                report_text += f"Recommendation: {best_candidate['Recommendation']}\n\n"
+
+                report_text += "Ranked Candidate Results\n"
+                report_text += "------------------------\n\n"
+
+                for index, candidate in enumerate(screening_results, start=1):
+                    report_text += f"Rank {index}: {candidate['Candidate Name']}\n"
+                    report_text += f"Job Match Score: {candidate['Job Match Score']}%\n"
+                    report_text += f"Semantic Match Score: {candidate['Semantic Match Score']}%\n"
+                    report_text += f"Final Screening Score: {candidate['Final Screening Score']}%\n"
+                    report_text += f"Matched Skills: {candidate['Matched Skills']}\n"
+                    report_text += f"Missing Skills: {candidate['Missing Skills']}\n"
+                    report_text += f"Strong Evidence Skills: {candidate['Strong Evidence Skills']}\n"
+                    report_text += f"Weak Evidence Skills: {candidate['Weak Evidence Skills']}\n"
+                    report_text += f"Recommendation: {candidate['Recommendation']}\n"
+                    report_text += "----------------------------------------\n\n"
+
+                report_text += "Top Candidate Interview Readiness Report\n"
+                report_text += "----------------------------------------\n"
+                report_text += f"Candidate Name: {interview_report['candidate_name']}\n"
+                report_text += f"Interview Readiness Score: {interview_report['final_score']}%\n"
+                report_text += f"Decision: {interview_report['decision']}\n"
+                report_text += f"Missing Skills: {interview_report['missing_skills']}\n"
+                report_text += f"Summary: {interview_report['summary']}\n"
+                report_text += f"Recommended Next Step: {interview_report['next_step']}\n\n"
+
+                report_text += "Generated by TalentBridge AI\n"
+                report_text += "Career Readiness + Job Matching + Training Pathway\n"
+
+                st.download_button(
+                    label="Download HR Batch Screening Report",
+                    data=report_text,
+                    file_name="talentbridge_hr_batch_screening_report.txt",
+                    mime="text/plain"
+                )
