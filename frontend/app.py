@@ -63,6 +63,9 @@ def initialize_session_state():
     if "username" not in st.session_state:
         st.session_state.username = ""
 
+    if "user_role" not in st.session_state:
+        st.session_state.user_role = ""
+
 
 initialize_session_state()
 st.set_page_config(
@@ -74,14 +77,43 @@ st.set_page_config(
 
 
 def login_screen():
+    demo_users = {
+        "admin": {
+            "password": "talentbridge123",
+            "role": "Admin"
+        },
+        "jobseeker": {
+            "password": "job123",
+            "role": "Job Seeker"
+        },
+        "recruiter": {
+            "password": "hr123",
+            "role": "HR / Recruiter"
+        },
+        "training": {
+            "password": "train123",
+            "role": "Training Center"
+        }
+    }
+
+    st.markdown(
+        """
+        <div class="hero-box">
+            <h1>🔐 TalentBridge AI Login</h1>
+            <p>Please log in to access the career readiness platform.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if username == "admin" and password == "talentbridge123":
+        if username in demo_users and password == demo_users[username]["password"]:
             st.session_state.logged_in = True
             st.session_state.username = username
+            st.session_state.user_role = demo_users[username]["role"]
             st.rerun()
         else:
             st.error("Invalid username or password.")
@@ -90,10 +122,12 @@ def login_screen():
 def logout_button():
     with st.sidebar:
         st.write(f"Logged in as: {st.session_state.username}")
+        st.write(f"Role: {st.session_state.user_role}")
 
         if st.button("Logout"):
             st.session_state.logged_in = False
             st.session_state.username = ""
+            st.session_state.user_role = ""
             st.rerun()
 
 
@@ -356,14 +390,18 @@ with feature_col6:
 # -----------------------------
 st.sidebar.header("TalentBridge Settings")
 
-user_mode = st.sidebar.selectbox(
-    "Who are you using this app as?",
-    [
-        "Job Seeker",
-        "HR / Recruiter",
-        "Training Center",
-    ],
-)
+if st.session_state.user_role == "Admin":
+    user_mode = st.sidebar.selectbox(
+        "Who are you using this app as?",
+        [
+            "Job Seeker",
+            "HR / Recruiter",
+            "Training Center",
+        ],
+    )
+else:
+    user_mode = st.session_state.user_role
+    st.sidebar.info(f"Mode locked to: {user_mode}")
 
 target_career = st.sidebar.selectbox(
     "Choose Your Target Career",
