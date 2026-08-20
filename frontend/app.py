@@ -38,6 +38,14 @@ from auth_service import (
     register_job_seeker,
     sign_out_user,
 )
+from persistence_service import (
+    PersistenceError,
+    list_job_analyses,
+    load_job_analysis,
+    load_skill_progress,
+    save_job_analysis,
+    save_skill_progress,
+)
 
 
 skill_display_names = {
@@ -79,6 +87,9 @@ def initialize_session_state():
 
     if "auth_client" not in st.session_state:
         st.session_state.auth_client = None
+
+    if "current_analysis_id" not in st.session_state:
+        st.session_state.current_analysis_id = None
 
 
 initialize_session_state()
@@ -189,6 +200,8 @@ def logout_button():
             st.session_state.username = ""
             st.session_state.user_role = ""
             st.session_state.auth_client = None
+            st.session_state.match_result = None
+            st.session_state.current_analysis_id = None
             st.rerun()
 
 
@@ -493,6 +506,44 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 with tab1:
     st.header("Resume & Job Description Matching")
 
+    with st.expander("My Saved Analyses"):
+        try:
+            saved_analyses = list_job_analyses(
+                st.session_state.auth_client,
+                st.session_state.user_id,
+            )
+        except Exception:
+            saved_analyses = []
+            st.warning("Saved analyses are temporarily unavailable.")
+
+        if not saved_analyses:
+            st.caption("No saved analyses yet.")
+        else:
+            analysis_options = {
+                (
+                    f"{item['target_career']} — {item['match_score']}% — "
+                    f"{item['created_at'][:10]}"
+                ): item["id"]
+                for item in saved_analyses
+            }
+            selected_analysis = st.selectbox(
+                "Choose a saved analysis",
+                list(analysis_options),
+            )
+            if st.button("Load Saved Analysis"):
+                try:
+                    saved_record = load_job_analysis(
+                        st.session_state.auth_client,
+                        st.session_state.user_id,
+                        analysis_options[selected_analysis],
+                    )
+                    st.session_state.match_result = saved_record["result_data"]
+                    st.session_state.current_analysis_id = saved_record["id"]
+                    st.success("Saved analysis loaded.")
+                    st.rerun()
+                except PersistenceError as error:
+                    st.error(str(error))
+
     st.write(
         "Upload or paste a resume, then paste a job description to compare candidate readiness."
     )
@@ -554,7 +605,20 @@ with input_col2:
                 "semantic_match_score": semantic_match_score,
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
+                "target_career": target_career,
             }
+
+            try:
+                st.session_state.current_analysis_id = save_job_analysis(
+                    st.session_state.auth_client,
+                    st.session_state.user_id,
+                    target_career,
+                    st.session_state.match_result,
+                )
+                st.success("Analysis saved to your private history.")
+            except Exception:
+                st.session_state.current_analysis_id = None
+                st.warning("Analysis completed, but it could not be saved.")
 
     match_result = st.session_state.match_result
 
@@ -746,25 +810,40 @@ with input_col2:
 
                 evidence_links = {}
                 progress_statuses = {}
+                current_analysis_id = st.session_state.current_analysis_id
+                try:
+                    saved_progress = load_skill_progress(
+                        st.session_state.auth_client,
+                        st.session_state.user_id,
+                        current_analysis_id,
+                    )
+                except Exception:
+                    saved_progress = {}
 
                 with st.form("portfolio_evidence_form"):
                     for skill in job_comparison["missing_skills"]:
                         st.markdown(f"### {skill}")
 
+                        saved_skill = saved_progress.get(skill, {})
+
                         evidence_links[skill] = st.text_input(
                             f"Paste portfolio or GitHub link for {skill}",
+                            value=saved_skill.get("evidence_url", ""),
                             placeholder="Example: https://github.com/username/project",
-                            key=f"evidence_link_{skill}",
+                            key=f"evidence_link_{current_analysis_id}_{skill}",
                         )
 
+                        status_options = [
+                            "Not Started",
+                            "In Progress",
+                            "Completed",
+                        ]
+                        saved_status = saved_skill.get("status", "Not Started")
                         progress_statuses[skill] = st.selectbox(
                             f"Progress status for {skill}",
-                            [
-                                "Not Started",
-                                "In Progress",
-                                "Completed",
-                            ],
-                            key=f"progress_status_{skill}",
+                            status_options,
+                            index=status_options.index(saved_status),
+                            key=f"progress_status_{current_analysis_id}_{skill}",
                         )
 
                     generate_evidence_summary = st.form_submit_button(
@@ -772,6 +851,20 @@ with input_col2:
                     )
 
                 if generate_evidence_summary:
+                    try:
+                        save_skill_progress(
+                            st.session_state.auth_client,
+                            st.session_state.user_id,
+                            current_analysis_id,
+                            evidence_links,
+                            progress_statuses,
+                        )
+                        st.success("Portfolio evidence and progress saved.")
+                    except PersistenceError as error:
+                        st.error(str(error))
+                    except Exception:
+                        st.error("Progress could not be saved. Please try again.")
+
                     st.subheader("Portfolio Evidence Summary")
 
                     evidence_report = "TalentBridge AI - Portfolio Evidence and Progress Report\n\n"
