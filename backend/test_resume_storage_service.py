@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 from resume_storage_service import (
     MAX_RESUME_BYTES,
     ResumeStorageError,
+    delete_resume,
     list_resumes,
     load_resume,
     save_resume,
@@ -105,6 +106,40 @@ class ResumeStorageServiceTests(unittest.TestCase):
         client.storage.from_.return_value.download.assert_called_once_with(
             "user-123/resume.pdf"
         )
+
+    def test_delete_resume_removes_owned_file_and_metadata(self):
+        client = MagicMock()
+        select_chain = client.table.return_value.select.return_value.eq.return_value
+        select_chain.eq.return_value.maybe_single.return_value.execute.return_value = SimpleNamespace(
+            data={"id": "resume-123", "storage_path": "user-123/resume.pdf"}
+        )
+        delete_chain = client.table.return_value.delete.return_value.eq.return_value
+        delete_chain.eq.return_value.execute.return_value = SimpleNamespace(
+            data=[{"id": "resume-123"}]
+        )
+
+        delete_resume(client, "user-123", "resume-123")
+
+        client.storage.from_.return_value.remove.assert_called_once_with(
+            ["user-123/resume.pdf"]
+        )
+        delete_chain.eq.assert_called_once_with("id", "resume-123")
+
+    def test_delete_resume_does_not_touch_foreign_or_invalid_path(self):
+        client = MagicMock()
+        lookup = client.table.return_value.select.return_value.eq.return_value.eq.return_value.maybe_single.return_value.execute
+        lookup.return_value = SimpleNamespace(data=None)
+
+        with self.assertRaises(ResumeStorageError):
+            delete_resume(client, "user-123", "foreign-resume")
+        client.storage.from_.assert_not_called()
+
+        lookup.return_value = SimpleNamespace(
+            data={"id": "resume-123", "storage_path": "other-user/resume.pdf"}
+        )
+        with self.assertRaises(ResumeStorageError):
+            delete_resume(client, "user-123", "resume-123")
+        client.storage.from_.assert_not_called()
 
 
 if __name__ == "__main__":
