@@ -6,6 +6,7 @@ from career_engine import (
     analyze_resume_text,
     analyze_skill_confidence,
     calculate_proof_based_readiness_score,
+    calculate_semantic_match_details,
     calculate_semantic_match_score,
     compare_resume_to_job,
     generate_interview_readiness_report,
@@ -126,6 +127,43 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertGreaterEqual(score, 99.0)
         self.assertLessEqual(score, 100.0)
+
+    def test_semantic_match_combines_context_and_normalized_skill_alignment(self):
+        resume = (
+            "Built PowerBI dashboards using PostgreSQL and Python 3. "
+            "Trained scikit-learn models, deployed Docker RESTful APIs to AWS, "
+            "and presented findings to stakeholders."
+        )
+        job_description = (
+            "Seeking a data professional with Python, SQL Server, Power-BI, "
+            "MS Excel, Azure, machine learning, Docker, Kubernetes, and REST APIs. "
+            "Strong stakeholder communication required."
+        )
+
+        details = calculate_semantic_match_details(resume, job_description)
+
+        self.assertEqual(details["skill_alignment_score"], 80.0)
+        self.assertEqual(details["matched_required_skill_count"], 8)
+        self.assertEqual(details["required_skill_count"], 10)
+        self.assertGreater(details["semantic_score"], 60.0)
+        self.assertLess(details["semantic_score"], 80.0)
+
+    def test_semantic_match_handles_empty_and_stop_word_only_inputs(self):
+        self.assertEqual(calculate_semantic_match_score("", "Python developer"), 0.0)
+        self.assertEqual(calculate_semantic_match_score("the and", "or the"), 0.0)
+
+    def test_semantic_match_uses_context_only_when_no_skills_are_required(self):
+        details = calculate_semantic_match_details(
+            "Managed regional operations and customer support.",
+            "Seeking regional operations and customer support experience.",
+        )
+
+        self.assertEqual(details["scoring_method"], "context_only")
+        self.assertEqual(details["required_skill_count"], 0)
+        self.assertEqual(
+            details["semantic_score"],
+            details["context_similarity_score"],
+        )
 
     def test_proof_based_readiness_uses_evidence_and_progress(self):
         result = calculate_proof_based_readiness_score(
