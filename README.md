@@ -122,6 +122,14 @@ reuse them in later sessions. Each file is stored inside its owner's folder,
 protected by row-level security, limited to PDF format and 5 MB, and recorded in
 private resume metadata. Duplicate uploads are detected by file hash.
 
+### Private Data Management
+
+Users can permanently delete their own saved analyses and resumes after an
+explicit confirmation. Analysis deletion also removes its associated skill
+progress, while resume deletion removes both the private Storage object and its
+metadata. Ownership filters and Supabase row-level security prevent one user
+from deleting another user's records.
+
 ### Resume Skill Analyzer
 
 Users can paste resume text or upload a PDF resume. The app detects skills such as:
