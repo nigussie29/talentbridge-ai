@@ -42,6 +42,7 @@ from auth_service import (
 )
 from persistence_service import (
     PersistenceError,
+    delete_job_analysis,
     list_job_analyses,
     load_job_analysis,
     load_skill_progress,
@@ -51,6 +52,7 @@ from persistence_service import (
 from resume_storage_service import (
     MAX_RESUME_BYTES,
     ResumeStorageError,
+    delete_resume,
     list_resumes,
     load_resume,
     save_resume,
@@ -106,6 +108,9 @@ def initialize_session_state():
 
     if "uploaded_resume_hash" not in st.session_state:
         st.session_state.uploaded_resume_hash = ""
+
+    if "data_management_notice" not in st.session_state:
+        st.session_state.data_management_notice = ""
 
 
 initialize_session_state()
@@ -524,6 +529,10 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 with tab1:
     st.header("Resume & Job Description Matching")
 
+    if st.session_state.data_management_notice:
+        st.success(st.session_state.data_management_notice)
+        st.session_state.data_management_notice = ""
+
     with st.expander("My Saved Resumes"):
         try:
             saved_resumes = list_resumes(
@@ -549,26 +558,54 @@ with tab1:
                 list(resume_options),
                 key="saved_resume_selector",
             )
-            if st.button("Use Saved Resume"):
-                try:
-                    resume_record, saved_pdf = load_resume(
-                        st.session_state.auth_client,
-                        st.session_state.user_id,
-                        resume_options[selected_resume],
-                    )
-                    extracted_text = extract_text_from_pdf(saved_pdf).strip()
-                    if not extracted_text:
-                        raise ResumeStorageError(
-                            "This PDF has no readable text. It may be a scanned image."
+            selected_resume_id = resume_options[selected_resume]
+            resume_action_col1, resume_action_col2 = st.columns(2)
+
+            with resume_action_col1:
+                if st.button("Use Saved Resume"):
+                    try:
+                        resume_record, saved_pdf = load_resume(
+                            st.session_state.auth_client,
+                            st.session_state.user_id,
+                            selected_resume_id,
                         )
-                    st.session_state.resume_text_input = extracted_text
-                    st.success(
-                        f"{resume_record['original_name']} loaded into Candidate Resume."
-                    )
-                except ResumeStorageError as error:
-                    st.error(str(error))
-                except Exception:
-                    st.error("The saved resume could not be loaded.")
+                        extracted_text = extract_text_from_pdf(saved_pdf).strip()
+                        if not extracted_text:
+                            raise ResumeStorageError(
+                                "This PDF has no readable text. It may be a scanned image."
+                            )
+                        st.session_state.resume_text_input = extracted_text
+                        st.success(
+                            f"{resume_record['original_name']} loaded into Candidate Resume."
+                        )
+                    except ResumeStorageError as error:
+                        st.error(str(error))
+                    except Exception:
+                        st.error("The saved resume could not be loaded.")
+
+            with resume_action_col2:
+                confirm_resume_delete = st.checkbox(
+                    "Confirm permanent resume deletion",
+                    key=f"confirm_resume_delete_{selected_resume_id}",
+                )
+                if st.button("Delete Saved Resume", type="secondary"):
+                    if not confirm_resume_delete:
+                        st.warning("Confirm deletion before removing this resume.")
+                    else:
+                        try:
+                            delete_resume(
+                                st.session_state.auth_client,
+                                st.session_state.user_id,
+                                selected_resume_id,
+                            )
+                            st.session_state.data_management_notice = (
+                                "Saved resume permanently deleted."
+                            )
+                            st.rerun()
+                        except ResumeStorageError as error:
+                            st.error(str(error))
+                        except Exception:
+                            st.error("The saved resume could not be deleted.")
 
     with st.expander("My Saved Analyses"):
         try:
@@ -594,19 +631,53 @@ with tab1:
                 "Choose a saved analysis",
                 list(analysis_options),
             )
-            if st.button("Load Saved Analysis"):
-                try:
-                    saved_record = load_job_analysis(
-                        st.session_state.auth_client,
-                        st.session_state.user_id,
-                        analysis_options[selected_analysis],
-                    )
-                    st.session_state.match_result = saved_record["result_data"]
-                    st.session_state.current_analysis_id = saved_record["id"]
-                    st.success("Saved analysis loaded.")
-                    st.rerun()
-                except PersistenceError as error:
-                    st.error(str(error))
+            selected_analysis_id = analysis_options[selected_analysis]
+            analysis_action_col1, analysis_action_col2 = st.columns(2)
+
+            with analysis_action_col1:
+                if st.button("Load Saved Analysis"):
+                    try:
+                        saved_record = load_job_analysis(
+                            st.session_state.auth_client,
+                            st.session_state.user_id,
+                            selected_analysis_id,
+                        )
+                        st.session_state.match_result = saved_record["result_data"]
+                        st.session_state.current_analysis_id = saved_record["id"]
+                        st.success("Saved analysis loaded.")
+                        st.rerun()
+                    except PersistenceError as error:
+                        st.error(str(error))
+
+            with analysis_action_col2:
+                confirm_analysis_delete = st.checkbox(
+                    "Confirm permanent analysis deletion",
+                    key=f"confirm_analysis_delete_{selected_analysis_id}",
+                )
+                if st.button("Delete Saved Analysis", type="secondary"):
+                    if not confirm_analysis_delete:
+                        st.warning("Confirm deletion before removing this analysis.")
+                    else:
+                        try:
+                            delete_job_analysis(
+                                st.session_state.auth_client,
+                                st.session_state.user_id,
+                                selected_analysis_id,
+                            )
+                            if (
+                                st.session_state.current_analysis_id
+                                == selected_analysis_id
+                            ):
+                                st.session_state.match_result = None
+                                st.session_state.current_analysis_id = None
+                            st.session_state.data_management_notice = (
+                                "Saved analysis permanently deleted."
+                            )
+                            st.rerun()
+                        except PersistenceError as error:
+                            st.error(str(error))
+                        except Exception:
+                            st.error("The saved analysis could not be deleted.")
 
     st.write(
         "Upload or paste a resume, then paste a job description to compare candidate readiness."
