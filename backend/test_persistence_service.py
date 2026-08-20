@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from persistence_service import (
+    delete_job_analysis,
     PersistenceError,
     list_job_analyses,
     load_job_analysis,
@@ -50,6 +51,28 @@ class PersistenceServiceTests(unittest.TestCase):
 
         with self.assertRaises(PersistenceError):
             load_job_analysis(client, "user-123", "missing")
+
+    def test_delete_job_analysis_filters_by_owner_and_id(self):
+        client = MagicMock()
+        chain = client.table.return_value.delete.return_value.eq.return_value
+        chain.eq.return_value.execute.return_value = SimpleNamespace(
+            data=[{"id": "analysis-123"}]
+        )
+
+        delete_job_analysis(client, "user-123", "analysis-123")
+
+        first_filter = client.table.return_value.delete.return_value.eq
+        first_filter.assert_called_once_with("user_id", "user-123")
+        chain.eq.assert_called_once_with("id", "analysis-123")
+
+    def test_delete_job_analysis_rejects_missing_or_foreign_record(self):
+        client = MagicMock()
+        client.table.return_value.delete.return_value.eq.return_value.eq.return_value.execute.return_value = SimpleNamespace(
+            data=[]
+        )
+
+        with self.assertRaises(PersistenceError):
+            delete_job_analysis(client, "user-123", "foreign-analysis")
 
     def test_save_skill_progress_validates_evidence_urls(self):
         with self.assertRaises(PersistenceError):
