@@ -142,6 +142,12 @@ Users can paste resume text or upload a PDF resume. The app detects skills such 
 * Data Analysis
 * Communication
 
+The resume and job analyzers share one normalized skill taxonomy. It recognizes
+common variants such as PowerBI, Power-BI, MS Excel, PostgreSQL, scikit-learn,
+Azure/AWS, Docker, and RESTful APIs. Boundary-aware matching prevents partial
+words such as `digital` or `capital` from being misclassified as Git or API
+skills.
+
 ### Job Description Matching
 
 Users can paste a job description. The app detects required job skills and compares them with the resume skills.
