@@ -4,6 +4,7 @@ from career_engine import (
     analyze_career_profile,
     analyze_job_description,
     analyze_resume_text,
+    analyze_skill_confidence,
     calculate_proof_based_readiness_score,
     calculate_semantic_match_score,
     compare_resume_to_job,
@@ -56,6 +57,58 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertEqual(result["matched_skills"], ["Python", "SQL", "Power BI"])
         self.assertEqual(result["missing_skills"], ["Excel", "Git"])
         self.assertEqual(result["match_score"], 60.0)
+
+    def test_skill_detector_normalizes_common_tool_variations(self):
+        skills = analyze_resume_text(
+            "Built PowerBI reports with MS Excel and PostgreSQL. "
+            "Trained scikit-learn models, used GitHub Actions and AWS, "
+            "then deployed Docker services with RESTful APIs."
+        )
+
+        self.assertEqual(
+            skills,
+            [
+                "SQL",
+                "Power BI",
+                "Excel",
+                "Git",
+                "Cloud",
+                "Machine Learning",
+                "REST APIs",
+                "Docker",
+            ],
+        )
+
+    def test_resume_and_job_detectors_share_the_same_taxonomy(self):
+        text = (
+            "Python 3, Power-BI, Microsoft Azure, PyTorch, Kubernetes, "
+            "Databricks, and TypeScript"
+        )
+
+        self.assertEqual(analyze_resume_text(text), analyze_job_description(text))
+
+    def test_skill_detector_uses_word_boundaries_to_avoid_false_matches(self):
+        skills = analyze_job_description(
+            "Digital marketing, capital planning, meaningful stories, "
+            "and long-term commitment are important."
+        )
+
+        self.assertNotIn("Git", skills)
+        self.assertNotIn("FastAPI", skills)
+        self.assertNotIn("Statistics", skills)
+
+    def test_skill_detector_handles_empty_input(self):
+        self.assertEqual(analyze_resume_text(""), [])
+        self.assertEqual(analyze_job_description(None), [])
+
+    def test_skill_confidence_uses_normalized_aliases(self):
+        text = "Developed a PowerBI dashboard and presented it to executives."
+        detected = analyze_resume_text(text)
+
+        confidence = analyze_skill_confidence(text, detected)
+        power_bi = next(row for row in confidence if row["Skill"] == "Power BI")
+
+        self.assertEqual(power_bi["Confidence Level"], "Strong Evidence")
 
     def test_progress_tracker_handles_known_and_unknown_skills(self):
         tracker = generate_progress_tracker(["Python", "Leadership"])
