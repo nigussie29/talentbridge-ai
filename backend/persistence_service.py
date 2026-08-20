@@ -70,6 +70,22 @@ def load_job_analysis(client: Any, user_id: str, analysis_id: str) -> dict:
     return row
 
 
+def delete_job_analysis(client: Any, user_id: str, analysis_id: str) -> None:
+    if not user_id or not analysis_id:
+        raise PersistenceError("Choose a saved analysis first.")
+
+    response = (
+        client.table("job_analyses")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("id", analysis_id)
+        .execute()
+    )
+    rows = getattr(response, "data", None) or []
+    if not rows:
+        raise PersistenceError("The saved analysis was not found or could not be deleted.")
+
+
 def _validate_evidence_url(url: str) -> str:
     clean_url = url.strip()
     if not clean_url:

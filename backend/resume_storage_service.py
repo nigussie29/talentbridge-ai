@@ -130,3 +130,36 @@ def load_resume(client: Any, user_id: str, resume_id: str) -> tuple[dict, bytes]
     if not file_bytes:
         raise ResumeStorageError("The saved resume file could not be downloaded.")
     return record, file_bytes
+
+
+def delete_resume(client: Any, user_id: str, resume_id: str) -> None:
+    if not user_id or not resume_id:
+        raise ResumeStorageError("Choose a saved resume first.")
+
+    response = (
+        client.table("resume_documents")
+        .select("id, storage_path")
+        .eq("user_id", user_id)
+        .eq("id", resume_id)
+        .maybe_single()
+        .execute()
+    )
+    record = getattr(response, "data", None)
+    if not record or not record.get("storage_path"):
+        raise ResumeStorageError("The saved resume was not found.")
+
+    storage_path = record["storage_path"]
+    if not storage_path.startswith(f"{user_id}/"):
+        raise ResumeStorageError("The saved resume has an invalid ownership path.")
+
+    client.storage.from_(RESUME_BUCKET).remove([storage_path])
+    delete_response = (
+        client.table("resume_documents")
+        .delete()
+        .eq("user_id", user_id)
+        .eq("id", resume_id)
+        .execute()
+    )
+    deleted_rows = getattr(delete_response, "data", None) or []
+    if not deleted_rows:
+        raise ResumeStorageError("The resume metadata could not be deleted.")
