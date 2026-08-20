@@ -336,9 +336,16 @@ Progress Completion Score: 40%
 TalentBridge AI now compares resumes and job descriptions in two ways:
 
 - **Job Match Score**: compares detected skills from the resume and job description.
-- **Semantic Match Score**: uses TF-IDF similarity to compare the meaning of the resume text and job description.
+- **Semantic Match Score**: combines normalized TF-IDF context similarity (35%)
+  with required-skill alignment (65%). Common skill aliases are converted to the
+  shared canonical taxonomy before comparison, and the app shows the score
+  breakdown so the result is explainable.
 
-This helps identify candidates whose resume language may be different from the job posting but still has strong relevance.
+This prevents a strong candidate from receiving an artificially tiny semantic
+score only because the resume says `PostgreSQL`, `PowerBI`, or `AWS` while the
+job posting says `SQL Server`, `Power-BI`, or `Azure`. If no known job skills are
+detected, the app safely falls back to context similarity alone.
+
 ### Proof-Based Readiness Score
 
 TalentBridge AI goes beyond resume matching by measuring whether a candidate can prove their skills with real evidence.
