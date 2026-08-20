@@ -1,6 +1,123 @@
 # career_engine.py
+import re
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+
+SKILL_KEYWORDS = {
+    "Python": [
+        "python", "python 3", "pandas", "numpy", "matplotlib",
+        "seaborn", "jupyter", "google colab", "pytest",
+    ],
+    "SQL": [
+        "sql", "sql server", "mysql", "postgresql", "postgres", "sqlite",
+        "t sql", "pl sql", "relational database", "sql query", "sql queries",
+    ],
+    "Power BI": [
+        "power bi", "powerbi", "microsoft power bi", "dax", "power query",
+        "power pivot", "paginated report", "paginated reports",
+    ],
+    "Excel": [
+        "excel", "ms excel", "microsoft excel", "pivot table", "pivot tables",
+        "vlookup", "xlookup", "power pivot", "excel formulas", "spreadsheet",
+        "spreadsheets", "google sheets",
+    ],
+    "Statistics": [
+        "statistics", "statistical analysis", "probability",
+        "hypothesis testing", "a b testing", "anova", "correlation",
+        "standard deviation", "variance analysis", "regression analysis",
+        "time series analysis",
+    ],
+    "ETL": [
+        "etl", "elt", "extract transform load", "data pipeline",
+        "data pipelines", "data transformation", "data integration",
+        "data orchestration", "apache airflow", "airflow", "dbt",
+        "azure data factory",
+    ],
+    "Git": [
+        "git", "github", "gitlab", "bitbucket", "version control",
+        "git repository", "git commit", "git push", "pull request",
+        "pull requests",
+    ],
+    "Cloud": [
+        "cloud", "cloud computing", "cloud platform", "cloud platforms",
+        "cloud storage",
+        "amazon web services", "aws", "microsoft azure", "azure",
+        "google cloud platform", "google cloud", "gcp", "microsoft fabric",
+    ],
+    "Machine Learning": [
+        "machine learning", "scikit learn", "sklearn", "tensorflow", "pytorch",
+        "xgboost", "lightgbm", "model training", "predictive model",
+        "predictive models", "supervised learning", "unsupervised learning",
+        "random forest", "decision tree", "logistic regression",
+        "neural network", "neural networks",
+    ],
+    "Artificial Intelligence": [
+        "artificial intelligence", "generative ai", "genai",
+        "large language model", "large language models", "llm", "llms",
+        "retrieval augmented generation", "rag", "natural language processing",
+        "nlp", "computer vision", "prompt engineering", "langchain", "openai",
+        "ai model", "ai models", "ai system", "ai systems",
+    ],
+    "Data Analysis": [
+        "data analysis", "data analytics", "analyze data",
+        "analysed data", "analyzed data", "exploratory data analysis", "eda",
+        "business insights", "trend analysis", "data profiling", "data cleaning",
+    ],
+    "Data Visualization": [
+        "data visualization", "data visualisation", "visual analytics",
+        "dashboard", "dashboards", "tableau", "plotly", "matplotlib", "seaborn",
+    ],
+    "Communication": [
+        "communication", "written communication", "verbal communication",
+        "presentation", "presentations", "presentation skills", "presented to",
+        "stakeholder", "stakeholders", "stakeholder communication",
+        "stakeholder management", "public speaking", "technical writing",
+        "report writing", "teaching", "training",
+    ],
+    "FastAPI": ["fastapi"],
+    "Streamlit": ["streamlit"],
+    "REST APIs": [
+        "rest api", "rest apis", "restful api", "restful apis",
+        "api development",
+    ],
+    "Docker": [
+        "docker", "dockerfile", "containerization", "containerisation",
+    ],
+    "Kubernetes": ["kubernetes", "k8s"],
+    "Apache Spark": ["apache spark", "pyspark", "spark sql"],
+    "Databricks": ["databricks"],
+    "Linux": ["linux", "ubuntu", "bash scripting", "shell scripting"],
+    "JavaScript": ["javascript", "typescript", "node.js", "nodejs"],
+}
+
+
+def _normalize_skill_text(text):
+    normalized = str(text or "").casefold()
+    normalized = re.sub(r"[\u2010-\u2015/_-]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _contains_skill_keyword(normalized_text, keyword):
+    normalized_keyword = _normalize_skill_text(keyword)
+    pattern = rf"(?<![a-z0-9]){re.escape(normalized_keyword)}(?![a-z0-9])"
+    return re.search(pattern, normalized_text) is not None
+
+
+def detect_skills(text):
+    normalized_text = _normalize_skill_text(text)
+    if not normalized_text:
+        return []
+
+    return [
+        skill
+        for skill, keywords in SKILL_KEYWORDS.items()
+        if any(
+            _contains_skill_keyword(normalized_text, keyword)
+            for keyword in keywords
+        )
+    ]
 
 required_skills = {
     "AI Engineer": {
@@ -106,105 +223,7 @@ def analyze_career_profile(user_profile, target_career):
     }
 
 def analyze_resume_text(resume_text):
-    skill_keywords = {
-        "Python": [
-            "python", "pandas", "numpy", "matplotlib", "seaborn",
-            "dataframe", "jupyter", "google colab", "scripting",
-            "automation with python"
-        ],
-
-        "SQL": [
-            "sql", "database", "mysql", "postgresql", "sqlite",
-            "query", "queries", "joins", "tables", "relational database",
-            "data warehouse"
-        ],
-
-        "Power BI": [
-            "power bi", "dashboard", "dashboards", "dax",
-            "power query", "business intelligence", "bi report",
-            "data model", "kpi", "visual report"
-        ],
-
-        "Excel": [
-            "excel", "spreadsheet", "pivot table", "vlookup",
-            "xlookup", "worksheet", "formulas", "charts"
-        ],
-
-        "Statistics": [
-            "statistics", "statistical analysis", "probability",
-            "hypothesis testing", "regression", "correlation",
-            "mean", "median", "standard deviation", "variance"
-        ],
-
-        "ETL": [
-            "etl", "extract", "transform", "load", "data pipeline",
-            "pipeline", "data cleaning", "data transformation",
-            "data preprocessing", "data wrangling"
-        ],
-
-        "Git": [
-            "git", "github", "version control", "repository",
-            "commit", "push", "pull request"
-        ],
-
-        "Cloud": [
-            "cloud", "azure", "aws", "google cloud", "gcp",
-            "cloud storage", "cloud database", "microsoft fabric"
-        ],
-
-        "Machine Learning": [
-            "machine learning", "scikit-learn", "sklearn",
-            "model training", "classification", "regression model",
-            "predictive model", "supervised learning",
-            "unsupervised learning", "random forest",
-            "decision tree", "logistic regression"
-        ],
-
-        "Artificial Intelligence": [
-            "artificial intelligence",
-            "generative ai",
-            "llm",
-            "rag",
-            "chatbot",
-            "prompt engineering",
-            "openai",
-            "large language model",
-            "ai model",
-            "ai system",
-            "ai application"
-        ],
-
-        "Data Analysis": [
-            "data analysis", "analyze data", "data cleaning",
-            "data visualization", "exploratory data analysis",
-            "eda", "insights", "business insights",
-            "reporting", "trend analysis"
-        ],
-
-        "Data Visualization": [
-            "data visualization", "visualization", "charts",
-            "graphs", "plot", "dashboard", "matplotlib",
-            "power bi", "tableau"
-        ],
-
-        "Communication": [
-            "communication", "presentation", "presented",
-            "stakeholder", "stakeholders", "training",
-            "teaching", "explained", "report writing",
-            "business report"
-        ]
-    }
-
-    resume_text_lower = resume_text.lower()
-    detected_skills = []
-
-    for skill, keywords in skill_keywords.items():
-        for keyword in keywords:
-            if keyword in resume_text_lower:
-                detected_skills.append(skill)
-                break
-
-    return detected_skills
+    return detect_skills(resume_text)
 
 def create_profile_from_resume(detected_skills):
     profile = {
@@ -272,43 +291,7 @@ def generate_text_report(result, skill_display_names=None):
 
     return report
 def analyze_job_description(job_description_text):
-    skill_keywords = {
-        "Python": ["python", "pandas", "numpy"],
-        "SQL": ["sql", "database", "mysql", "postgresql"],
-        "Power BI": ["power bi", "dashboard", "dax"],
-        "Machine Learning": ["machine learning", "scikit-learn", "model training"],
-        "Artificial Intelligence": [
-            "artificial intelligence",
-            "generative ai",
-            "llm",
-            "large language model",
-            "rag",
-            "chatbot",
-            "ai model",
-            "ai system",
-            "ai application"
-        ],
-        "Data Analysis": ["data analysis", "data cleaning", "data visualization"],
-        "Communication": ["communication", "presentation", "stakeholder", "reporting"],
-        "Excel": ["excel", "spreadsheet", "pivot table"],
-        "Statistics": ["statistics", "probability", "statistical analysis"],
-        "ETL": ["etl", "data pipeline", "data transformation"],
-        "Cloud": ["aws", "azure", "gcp", "cloud"],
-        "FastAPI": ["fastapi", "api", "rest api"],
-        "Streamlit": ["streamlit"],
-        "Git": ["git", "github", "version control"]
-    }
-
-    job_description_lower = job_description_text.lower()
-    required_skills = []
-
-    for skill, keywords in skill_keywords.items():
-        for keyword in keywords:
-            if keyword in job_description_lower:
-                required_skills.append(skill)
-                break
-
-    return required_skills
+    return detect_skills(job_description_text)
 
 
 def compare_resume_to_job(resume_skills, job_required_skills):
@@ -884,7 +867,7 @@ def generate_interview_readiness_report(
         "next_step": next_step
     }
 def analyze_skill_confidence(resume_text, detected_skills):
-    resume_text_lower = resume_text.lower()
+    resume_text_lower = _normalize_skill_text(resume_text)
 
     strong_evidence_words = [
         "built",
@@ -935,18 +918,20 @@ def analyze_skill_confidence(resume_text, detected_skills):
         "practicing"
     ]
 
-    sentences = resume_text_lower.replace("\n", " ").split(".")
+    sentences = re.split(r"[.!?\n]+", resume_text_lower)
 
     confidence_results = []
 
     for skill in detected_skills:
-        skill_lower = skill.lower()
-
-        matching_sentences = []
-
-        for sentence in sentences:
-            if skill_lower in sentence:
-                matching_sentences.append(sentence)
+        skill_keywords = SKILL_KEYWORDS.get(skill, [skill])
+        matching_sentences = [
+            sentence
+            for sentence in sentences
+            if any(
+                _contains_skill_keyword(sentence, keyword)
+                for keyword in skill_keywords
+            )
+        ]
 
         if len(matching_sentences) == 0:
             confidence = "Weak Evidence"
