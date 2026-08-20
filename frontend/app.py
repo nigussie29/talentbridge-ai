@@ -30,6 +30,14 @@ from career_engine import (
 
 
 )
+from auth_service import (
+    AuthConfigurationError,
+    AuthenticationError,
+    authenticate_user,
+    create_auth_client,
+    register_job_seeker,
+    sign_out_user,
+)
 
 
 skill_display_names = {
@@ -63,8 +71,14 @@ def initialize_session_state():
     if "username" not in st.session_state:
         st.session_state.username = ""
 
+    if "user_id" not in st.session_state:
+        st.session_state.user_id = ""
+
     if "user_role" not in st.session_state:
         st.session_state.user_role = ""
+
+    if "auth_client" not in st.session_state:
+        st.session_state.auth_client = None
 
 
 initialize_session_state()
@@ -76,25 +90,24 @@ st.set_page_config(
 
 
 
+def get_auth_client():
+    if st.session_state.auth_client is not None:
+        return st.session_state.auth_client
+
+    try:
+        supabase_secrets = st.secrets["supabase"]
+        url = supabase_secrets["url"]
+        key = supabase_secrets["key"]
+    except Exception as error:
+        raise AuthConfigurationError(
+            "Supabase authentication has not been configured for this deployment."
+        ) from error
+
+    st.session_state.auth_client = create_auth_client(url, key)
+    return st.session_state.auth_client
+
+
 def login_screen():
-    demo_users = {
-        "admin": {
-            "password": "talentbridge123",
-            "role": "Admin"
-        },
-        "jobseeker": {
-            "password": "job123",
-            "role": "Job Seeker"
-        },
-        "recruiter": {
-            "password": "hr123",
-            "role": "HR / Recruiter"
-        },
-        "training": {
-            "password": "train123",
-            "role": "Training Center"
-        }
-    }
 
     st.markdown(
         """
@@ -106,17 +119,58 @@ def login_screen():
         unsafe_allow_html=True
     )
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    try:
+        auth_client = get_auth_client()
+    except AuthConfigurationError:
+        st.error("Secure login is being configured. Please try again later.")
+        return
 
-    if st.button("Login"):
-        if username in demo_users and password == demo_users[username]["password"]:
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            st.session_state.user_role = demo_users[username]["role"]
-            st.rerun()
-        else:
-            st.error("Invalid username or password.")
+    login_tab, register_tab = st.tabs(["Sign in", "Create account"])
+
+    with login_tab:
+        with st.form("login_form"):
+            email = st.text_input("Email address")
+            password = st.text_input("Password", type="password")
+            login_submitted = st.form_submit_button("Sign in")
+
+        if login_submitted:
+            try:
+                user = authenticate_user(auth_client, email, password)
+                st.session_state.logged_in = True
+                st.session_state.user_id = user.user_id
+                st.session_state.username = user.display_name
+                st.session_state.user_role = user.role
+                st.rerun()
+            except Exception:
+                st.error("Sign-in failed. Check your email and password.")
+
+    with register_tab:
+        with st.form("registration_form"):
+            display_name = st.text_input("Full name")
+            registration_email = st.text_input("Email address", key="registration_email")
+            registration_password = st.text_input(
+                "Password (at least 8 characters)",
+                type="password",
+                key="registration_password",
+            )
+            registration_submitted = st.form_submit_button("Create account")
+
+        if registration_submitted:
+            try:
+                signed_in = register_job_seeker(
+                    auth_client,
+                    registration_email,
+                    registration_password,
+                    display_name,
+                )
+                if signed_in:
+                    st.success("Account created. You can now sign in.")
+                else:
+                    st.success("Account created. Check your email to confirm it, then sign in.")
+            except AuthenticationError as error:
+                st.error(str(error))
+            except Exception:
+                st.error("Account creation failed. Please try again.")
 
 
 def logout_button():
@@ -125,9 +179,16 @@ def logout_button():
         st.write(f"Role: {st.session_state.user_role}")
 
         if st.button("Logout"):
+            if st.session_state.auth_client is not None:
+                try:
+                    sign_out_user(st.session_state.auth_client)
+                except Exception:
+                    pass
             st.session_state.logged_in = False
+            st.session_state.user_id = ""
             st.session_state.username = ""
             st.session_state.user_role = ""
+            st.session_state.auth_client = None
             st.rerun()
 
 
@@ -136,17 +197,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 logout_button()
-st.markdown(
-        """
-        <div class="hero-box">
-            <h1>🔐 TalentBridge AI Login</h1>
-            <p>Please log in to access the career readiness platform.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
 st.markdown(
     """
     <style>
