@@ -24,7 +24,7 @@ from career_engine import (
     generate_progress_tracker,
     calculate_improvement_score,
     prioritize_missing_skills,
-    calculate_semantic_match_score,
+    calculate_semantic_match_details,
     calculate_proof_based_readiness_score,
     screen_multiple_candidates,
     generate_interview_readiness_report,
@@ -758,10 +758,11 @@ with input_col2:
             job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
             hr_report = generate_hr_report(job_comparison)
             improvement_score = calculate_improvement_score(job_comparison)
-            semantic_match_score = calculate_semantic_match_score(
+            semantic_match_details = calculate_semantic_match_details(
                 resume_text,
                 job_description_text,
             )
+            semantic_match_score = semantic_match_details["semantic_score"]
             mode_report_text = generate_mode_report(
                 user_mode,
                 job_comparison,
@@ -777,6 +778,7 @@ with input_col2:
                 "hr_report": hr_report,
                 "improvement_score": improvement_score,
                 "semantic_match_score": semantic_match_score,
+                "semantic_match_details": semantic_match_details,
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
@@ -803,6 +805,13 @@ with input_col2:
         hr_report = match_result["hr_report"]
         improvement_score = match_result["improvement_score"]
         semantic_match_score = match_result["semantic_match_score"]
+        semantic_match_details = match_result.get("semantic_match_details")
+        if semantic_match_details is None:
+            semantic_match_details = calculate_semantic_match_details(
+                match_result.get("resume_text", ""),
+                match_result.get("job_description_text", ""),
+            )
+            semantic_match_score = semantic_match_details["semantic_score"]
         mode_report_text = match_result["mode_report_text"]
 
         st.subheader("Job Match Result")
@@ -820,6 +829,33 @@ with input_col2:
                 label="Semantic Match Score",
                 value=f"{semantic_match_score}%",
             )
+
+        with st.expander("How the semantic score is calculated"):
+            semantic_col1, semantic_col2 = st.columns(2)
+            with semantic_col1:
+                st.metric(
+                    "Context Similarity",
+                    f"{semantic_match_details['context_similarity_score']}%",
+                )
+            with semantic_col2:
+                st.metric(
+                    "Required-Skill Alignment",
+                    f"{semantic_match_details['skill_alignment_score']}%",
+                )
+
+            required_skill_count = semantic_match_details["required_skill_count"]
+            if required_skill_count:
+                st.caption(
+                    "The score combines 35% normalized resume/job context and "
+                    "65% required-skill alignment. "
+                    f"Matched {semantic_match_details['matched_required_skill_count']} "
+                    f"of {required_skill_count} required skills."
+                )
+            else:
+                st.caption(
+                    "No known required skills were detected, so this score uses "
+                    "normalized resume/job context only."
+                )
 
         result_col1, result_col2 = st.columns(2)
 
