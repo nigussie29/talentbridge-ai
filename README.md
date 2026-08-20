@@ -115,6 +115,13 @@ The app currently supports:
 
 Users can upload a PDF resume. The app extracts resume text and uses it for skill detection and job matching.
 
+### Private Resume Library
+
+Signed-in users can save PDF resumes in a private Supabase Storage bucket and
+reuse them in later sessions. Each file is stored inside its owner's folder,
+protected by row-level security, limited to PDF format and 5 MB, and recorded in
+private resume metadata. Duplicate uploads are detected by file hash.
+
 ### Resume Skill Analyzer
 
 Users can paste resume text or upload a PDF resume. The app detects skills such as:
@@ -424,17 +431,21 @@ The app uses a tabbed dashboard layout:
 talentbridge-ai/
 │
 ├── backend/
+│   ├── auth_service.py
 │   ├── career_engine.py
-│   ├── interactive_career_app.py
-│   ├── test_career_engine.py
-│   ├── test_resume_analyzer.py
-│   └── test_job_matcher.py
+│   ├── persistence_service.py
+│   ├── resume_storage_service.py
+│   └── test_*.py
 │
 ├── data/
 │   └── career_profiles.csv
 │
 ├── frontend/
 │   └── app.py
+├── supabase/
+│   ├── schema.sql
+│   ├── persistence.sql
+│   └── resume_storage.sql
 │
 ├── notebooks/
 │   └── 01_explore_dataset.py

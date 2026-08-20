@@ -1,4 +1,6 @@
 import sys
+from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 import streamlit as st
@@ -46,6 +48,13 @@ from persistence_service import (
     save_job_analysis,
     save_skill_progress,
 )
+from resume_storage_service import (
+    MAX_RESUME_BYTES,
+    ResumeStorageError,
+    list_resumes,
+    load_resume,
+    save_resume,
+)
 
 
 skill_display_names = {
@@ -58,7 +67,8 @@ skill_display_names = {
 
 
 def extract_text_from_pdf(uploaded_file):
-    reader = PdfReader(uploaded_file)
+    pdf_source = BytesIO(uploaded_file) if isinstance(uploaded_file, bytes) else uploaded_file
+    reader = PdfReader(pdf_source)
     text = ""
 
     for page in reader.pages:
@@ -90,6 +100,12 @@ def initialize_session_state():
 
     if "current_analysis_id" not in st.session_state:
         st.session_state.current_analysis_id = None
+
+    if "resume_text_input" not in st.session_state:
+        st.session_state.resume_text_input = ""
+
+    if "uploaded_resume_hash" not in st.session_state:
+        st.session_state.uploaded_resume_hash = ""
 
 
 initialize_session_state()
@@ -202,6 +218,8 @@ def logout_button():
             st.session_state.auth_client = None
             st.session_state.match_result = None
             st.session_state.current_analysis_id = None
+            st.session_state.resume_text_input = ""
+            st.session_state.uploaded_resume_hash = ""
             st.rerun()
 
 
@@ -506,6 +524,52 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 with tab1:
     st.header("Resume & Job Description Matching")
 
+    with st.expander("My Saved Resumes"):
+        try:
+            saved_resumes = list_resumes(
+                st.session_state.auth_client,
+                st.session_state.user_id,
+            )
+        except Exception:
+            saved_resumes = []
+            st.warning("Saved resumes are temporarily unavailable.")
+
+        if not saved_resumes:
+            st.caption("No saved resumes yet.")
+        else:
+            resume_options = {
+                (
+                    f"{item['original_name']} — {item['created_at'][:10]} — "
+                    f"{round(item['byte_size'] / 1024)} KB"
+                ): item["id"]
+                for item in saved_resumes
+            }
+            selected_resume = st.selectbox(
+                "Choose a saved resume",
+                list(resume_options),
+                key="saved_resume_selector",
+            )
+            if st.button("Use Saved Resume"):
+                try:
+                    resume_record, saved_pdf = load_resume(
+                        st.session_state.auth_client,
+                        st.session_state.user_id,
+                        resume_options[selected_resume],
+                    )
+                    extracted_text = extract_text_from_pdf(saved_pdf).strip()
+                    if not extracted_text:
+                        raise ResumeStorageError(
+                            "This PDF has no readable text. It may be a scanned image."
+                        )
+                    st.session_state.resume_text_input = extracted_text
+                    st.success(
+                        f"{resume_record['original_name']} loaded into Candidate Resume."
+                    )
+                except ResumeStorageError as error:
+                    st.error(str(error))
+                except Exception:
+                    st.error("The saved resume could not be loaded.")
+
     with st.expander("My Saved Analyses"):
         try:
             saved_analyses = list_job_analyses(
@@ -558,10 +622,49 @@ with input_col1:
         type=["pdf"]
     )
 
+    if uploaded_resume is not None:
+        uploaded_pdf = uploaded_resume.getvalue()
+        uploaded_hash = sha256(uploaded_pdf).hexdigest()
+
+        if uploaded_hash != st.session_state.uploaded_resume_hash:
+            try:
+                if len(uploaded_pdf) > MAX_RESUME_BYTES:
+                    raise ResumeStorageError("Resume PDFs must be 5 MB or smaller.")
+                extracted_text = extract_text_from_pdf(uploaded_pdf).strip()
+                if not extracted_text:
+                    raise ResumeStorageError(
+                        "This PDF has no readable text. It may be a scanned image."
+                    )
+                st.session_state.resume_text_input = extracted_text
+                st.session_state.uploaded_resume_hash = uploaded_hash
+                st.success("PDF text extracted into Candidate Resume.")
+            except ResumeStorageError as error:
+                st.error(str(error))
+            except Exception:
+                st.error("The PDF could not be read. Try a text-based PDF.")
+
+        if st.button("Save PDF Privately", key="save_private_resume_button"):
+            try:
+                saved_resume = save_resume(
+                    st.session_state.auth_client,
+                    st.session_state.user_id,
+                    uploaded_resume.name,
+                    uploaded_pdf,
+                )
+                if saved_resume["already_exists"]:
+                    st.info("This resume is already in your private resume library.")
+                else:
+                    st.success("Resume saved to your private resume library.")
+            except ResumeStorageError as error:
+                st.error(str(error))
+            except Exception:
+                st.error("The resume could not be saved. Please try again.")
+
     resume_text = st.text_area(
         "Paste your resume text here or use uploaded PDF text",
         height=260,
-        placeholder="Paste resume text, skills, experience, or project descriptions here..."
+        placeholder="Paste resume text, skills, experience, or project descriptions here...",
+        key="resume_text_input",
     )
 
 with input_col2:
