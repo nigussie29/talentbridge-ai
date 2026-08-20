@@ -2,3 +2,4 @@ pandas
 streamlit
 PyPDF2
 scikit-learn
+supabase
