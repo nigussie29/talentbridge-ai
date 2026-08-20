@@ -94,10 +94,10 @@ def analyze_career_profile(user_profile, target_career):
 
     recommended_projects = {}
 
-    for skill in gaps.keys():
+    for skill in gaps:
         recommended_projects[skill] = project_recommendations[skill]
 
-        return {
+    return {
         "target_career": target_career,
         "readiness_score": round(readiness_score, 2),
         "status": status,
