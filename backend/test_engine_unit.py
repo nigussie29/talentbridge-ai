@@ -1,6 +1,7 @@
 import unittest
 
 from career_engine import (
+    analyze_career_profile,
     analyze_job_description,
     analyze_resume_text,
     calculate_proof_based_readiness_score,
@@ -12,6 +13,38 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_career_profile_recommends_projects_for_every_skill_gap(self):
+        profile = {
+            "python_skill": 4,
+            "math_skill": 5,
+            "data_skill": 4,
+            "ai_skill": 3,
+            "communication_skill": 4,
+        }
+
+        result = analyze_career_profile(profile, "AI Engineer")
+
+        self.assertEqual(result["skill_gaps"], {"python_skill": 1, "ai_skill": 2})
+        self.assertEqual(
+            set(result["recommended_projects"]),
+            {"python_skill", "ai_skill"},
+        )
+
+    def test_career_profile_returns_result_when_there_are_no_gaps(self):
+        profile = {
+            "python_skill": 5,
+            "math_skill": 5,
+            "data_skill": 5,
+            "ai_skill": 5,
+            "communication_skill": 5,
+        }
+
+        result = analyze_career_profile(profile, "AI Engineer")
+
+        self.assertEqual(result["skill_gaps"], {})
+        self.assertEqual(result["recommended_projects"], {})
+        self.assertEqual(result["readiness_score"], 100.0)
+
     def test_resume_and_job_matching(self):
         resume_skills = analyze_resume_text("Built dashboards using Python, SQL, and Power BI.")
         job_skills = analyze_job_description(
