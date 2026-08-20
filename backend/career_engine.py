@@ -650,27 +650,93 @@ def prioritize_missing_skills(missing_skills):
         )
 
     return priority_report
-def calculate_semantic_match_score(resume_text, job_description_text):
+
+
+SEMANTIC_CONTEXT_WEIGHT = 0.35
+SEMANTIC_SKILL_WEIGHT = 0.65
+
+
+def _prepare_semantic_text(text):
+    """Normalize text and append canonical skill concepts for comparison."""
+    normalized_text = _normalize_skill_text(text)
+    canonical_skills = " ".join(
+        _normalize_skill_text(skill) for skill in detect_skills(text)
+    )
+    return " ".join(part for part in (normalized_text, canonical_skills) if part)
+
+
+def _calculate_context_similarity(resume_text, job_description_text):
     texts = [
-        resume_text,
-        job_description_text
+        _prepare_semantic_text(resume_text),
+        _prepare_semantic_text(job_description_text),
     ]
+
+    if not all(texts):
+        return 0.0
 
     vectorizer = TfidfVectorizer(
         stop_words="english",
-        ngram_range=(1, 2)
+        ngram_range=(1, 2),
+        sublinear_tf=True,
     )
 
-    tfidf_matrix = vectorizer.fit_transform(texts)
+    try:
+        tfidf_matrix = vectorizer.fit_transform(texts)
+    except ValueError:
+        # Both inputs can contain only punctuation or English stop words.
+        return 0.0
 
     similarity_score = cosine_similarity(
         tfidf_matrix[0:1],
-        tfidf_matrix[1:2]
+        tfidf_matrix[1:2],
     )[0][0]
+    return round(float(similarity_score) * 100, 2)
 
-    semantic_score = round(similarity_score * 100, 2)
 
-    return semantic_score
+def calculate_semantic_match_details(resume_text, job_description_text):
+    """Return an explainable context-and-skill relevance score."""
+    context_similarity_score = _calculate_context_similarity(
+        resume_text,
+        job_description_text,
+    )
+    resume_skills = detect_skills(resume_text)
+    job_required_skills = detect_skills(job_description_text)
+    matched_required_skills = [
+        skill for skill in job_required_skills if skill in resume_skills
+    ]
+
+    if job_required_skills:
+        skill_alignment_score = round(
+            (len(matched_required_skills) / len(job_required_skills)) * 100,
+            2,
+        )
+        semantic_score = round(
+            (context_similarity_score * SEMANTIC_CONTEXT_WEIGHT)
+            + (skill_alignment_score * SEMANTIC_SKILL_WEIGHT),
+            2,
+        )
+        scoring_method = "context_and_required_skills"
+    else:
+        skill_alignment_score = 0.0
+        semantic_score = context_similarity_score
+        scoring_method = "context_only"
+
+    return {
+        "semantic_score": semantic_score,
+        "context_similarity_score": context_similarity_score,
+        "skill_alignment_score": skill_alignment_score,
+        "matched_required_skills": matched_required_skills,
+        "matched_required_skill_count": len(matched_required_skills),
+        "required_skill_count": len(job_required_skills),
+        "scoring_method": scoring_method,
+    }
+
+
+def calculate_semantic_match_score(resume_text, job_description_text):
+    return calculate_semantic_match_details(
+        resume_text,
+        job_description_text,
+    )["semantic_score"]
 
 
 def calculate_proof_based_readiness_score(
