@@ -594,89 +594,6 @@ def generate_progress_tracker(missing_skills):
             })
 
     return tracker
-def generate_progress_tracker(missing_skills):
-    evidence_library = {
-        "Excel": {
-            "learning_task": "Create an Excel dashboard using formulas, filters, and pivot tables.",
-            "portfolio_evidence": "Upload a dashboard screenshot or Excel project summary.",
-            "status": "Not Started"
-        },
-        "Statistics": {
-            "learning_task": "Complete a mini statistics analysis using mean, median, standard deviation, and correlation.",
-            "portfolio_evidence": "Upload a short statistics report or notebook.",
-            "status": "Not Started"
-        },
-        "ETL": {
-            "learning_task": "Build a small ETL pipeline that extracts, cleans, transforms, and saves data.",
-            "portfolio_evidence": "Upload a GitHub link showing the ETL pipeline.",
-            "status": "Not Started"
-        },
-        "Cloud": {
-            "learning_task": "Deploy a small app, dashboard, or API online.",
-            "portfolio_evidence": "Add a live app link or deployment screenshot.",
-            "status": "Not Started"
-        },
-        "Git": {
-            "learning_task": "Create a GitHub repository and push one complete project.",
-            "portfolio_evidence": "Add the GitHub repository link.",
-            "status": "Not Started"
-        },
-        "SQL": {
-            "learning_task": "Write SQL queries using SELECT, WHERE, GROUP BY, JOIN, and ORDER BY.",
-            "portfolio_evidence": "Upload SQL query examples or a database analysis project.",
-            "status": "Not Started"
-        },
-        "Python": {
-            "learning_task": "Build a Python project using functions, dictionaries, pandas, and file handling.",
-            "portfolio_evidence": "Upload the Python project to GitHub.",
-            "status": "Not Started"
-        },
-        "Power BI": {
-            "learning_task": "Create a Power BI dashboard with visuals, filters, and business insights.",
-            "portfolio_evidence": "Upload dashboard screenshots or a Power BI project summary.",
-            "status": "Not Started"
-        },
-        "Machine Learning": {
-            "learning_task": "Train and evaluate a simple classification or regression model.",
-            "portfolio_evidence": "Upload a notebook showing model training, accuracy, and explanation.",
-            "status": "Not Started"
-        },
-        "Artificial Intelligence": {
-            "learning_task": "Build a simple AI assistant, prompt system, or RAG prototype.",
-            "portfolio_evidence": "Upload the AI app link, GitHub repo, or project write-up.",
-            "status": "Not Started"
-        },
-        "Data Analysis": {
-            "learning_task": "Analyze a real dataset and explain insights with charts.",
-            "portfolio_evidence": "Upload a notebook, dashboard, or written analysis report.",
-            "status": "Not Started"
-        },
-        "Communication": {
-            "learning_task": "Create a one-page project summary and explain results clearly.",
-            "portfolio_evidence": "Upload a project summary or short presentation.",
-            "status": "Not Started"
-        }
-    }
-
-    tracker = []
-
-    for skill in missing_skills:
-        if skill in evidence_library:
-            tracker.append({
-                "Missing Skill": skill,
-                "Learning Task": evidence_library[skill]["learning_task"],
-                "Portfolio Evidence": evidence_library[skill]["portfolio_evidence"],
-                "Status": evidence_library[skill]["status"]
-            })
-        else:
-            tracker.append({
-                "Missing Skill": skill,
-                "Learning Task": f"Study the basics of {skill}.",
-                "Portfolio Evidence": f"Build one small project proving {skill}.",
-                "Status": "Not Started"
-            })
-
-    return tracker
 def calculate_improvement_score(job_comparison):
     current_score = job_comparison["match_score"]
     missing_skills = job_comparison["missing_skills"]
@@ -771,65 +688,8 @@ def calculate_semantic_match_score(resume_text, job_description_text):
     semantic_score = round(similarity_score * 100, 2)
 
     return semantic_score
-calculate_semantic_match_score = calculate_semantic_match_score
-def calculate_proof_based_readiness_score(
-    job_match_score,
-    semantic_match_score,
-    evidence_links,
-    progress_statuses
-):
-    total_skills = len(progress_statuses)
 
-    if total_skills == 0:
-        portfolio_evidence_score = 100
-        progress_completion_score = 100
-    else:
-        completed_evidence_count = 0
-        completed_progress_count = 0
 
-        for skill in progress_statuses:
-            evidence_link = evidence_links.get(skill, "")
-            progress_status = progress_statuses.get(skill, "Not Started")
-
-            if evidence_link.strip() != "":
-                completed_evidence_count += 1
-
-            if progress_status == "Completed":
-                completed_progress_count += 1
-
-        portfolio_evidence_score = round(
-            (completed_evidence_count / total_skills) * 100,
-            2
-        )
-
-        progress_completion_score = round(
-            (completed_progress_count / total_skills) * 100,
-            2
-        )
-
-    proof_based_score = round(
-        (job_match_score * 0.40)
-        + (semantic_match_score * 0.20)
-        + (portfolio_evidence_score * 0.25)
-        + (progress_completion_score * 0.15),
-        2
-    )
-
-    if proof_based_score >= 85:
-        readiness_level = "Strong Proof of Readiness"
-    elif proof_based_score >= 70:
-        readiness_level = "Good Proof, Needs Minor Improvement"
-    elif proof_based_score >= 50:
-        readiness_level = "Developing Proof"
-    else:
-        readiness_level = "Weak Proof, Needs Portfolio Evidence"
-
-    return {
-        "proof_based_score": proof_based_score,
-        "portfolio_evidence_score": portfolio_evidence_score,
-        "progress_completion_score": progress_completion_score,
-        "readiness_level": readiness_level
-    }
 def calculate_proof_based_readiness_score(
     job_match_score,
     semantic_match_score,
@@ -966,63 +826,6 @@ def screen_multiple_candidates(job_description_text, candidate_resumes):
     return screening_results
 
 
-def generate_interview_readiness_report(
-    candidate_name,
-    job_match_score,
-    semantic_match_score,
-    missing_skills,
-    proof_based_score=None
-):
-    if proof_based_score is None:
-        final_score = round(
-            (job_match_score * 0.60) + (semantic_match_score * 0.40),
-            2
-        )
-    else:
-        final_score = round(
-            (job_match_score * 0.35)
-            + (semantic_match_score * 0.25)
-            + (proof_based_score * 0.40),
-            2
-        )
-
-    if final_score >= 85 and len(missing_skills) <= 1:
-        decision = "Interview Ready"
-    elif final_score >= 70:
-        decision = "Needs Portfolio Evidence"
-    elif final_score >= 50:
-        decision = "Train Before Interview"
-    else:
-        decision = "Not Ready Yet"
-
-    if len(missing_skills) == 0:
-        missing_skills_text = "No major missing skills detected."
-    else:
-        missing_skills_text = ", ".join(missing_skills)
-
-    summary = (
-        f"{candidate_name} received a final interview readiness score of "
-        f"{final_score}%. The current decision is: {decision}. "
-        f"Missing skills: {missing_skills_text}"
-    )
-
-    if decision == "Interview Ready":
-        next_step = "Move the candidate to interview."
-    elif decision == "Needs Portfolio Evidence":
-        next_step = "Ask the candidate to provide stronger GitHub, dashboard, or portfolio evidence."
-    elif decision == "Train Before Interview":
-        next_step = "Recommend a short training plan before interview."
-    else:
-        next_step = "Do not move forward yet. Candidate needs major skill development."
-
-    return {
-        "candidate_name": candidate_name,
-        "final_score": final_score,
-        "decision": decision,
-        "missing_skills": missing_skills_text,
-        "summary": summary,
-        "next_step": next_step
-    }
 def generate_interview_readiness_report(
     candidate_name,
     job_match_score,
