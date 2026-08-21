@@ -29,6 +29,7 @@ from career_engine import (
     calculate_proof_based_readiness_score,
     screen_multiple_candidates,
     generate_interview_readiness_report,
+    generate_interview_preparation_plan,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -1032,6 +1033,87 @@ with input_col2:
                 "Download Resume Improvement Plan",
                 data=resume_coach_report,
                 file_name="talentbridge_resume_improvement_plan.txt",
+                mime="text/plain",
+            )
+
+            st.subheader("Evidence-Based Interview Preparation")
+
+            interview_plan = generate_interview_preparation_plan(
+                match_result.get("resume_text", ""),
+                job_required_skills,
+            )
+
+            interview_col1, interview_col2, interview_col3 = st.columns(3)
+            with interview_col1:
+                st.metric(
+                    "Technical Questions",
+                    interview_plan["technical_question_count"],
+                )
+            with interview_col2:
+                st.metric(
+                    "Behavioral Questions",
+                    interview_plan["behavioral_question_count"],
+                )
+            with interview_col3:
+                st.metric(
+                    "High-Priority Questions",
+                    interview_plan["high_priority_question_count"],
+                )
+
+            st.info(interview_plan["status"])
+
+            st.markdown("#### Technical Interview Practice")
+            if interview_plan["technical_questions"]:
+                st.table(interview_plan["technical_questions"])
+            else:
+                st.caption(
+                    "Add a job description with recognizable requirements to "
+                    "generate technical interview questions."
+                )
+
+            st.markdown("#### Behavioral Interview Practice")
+            if interview_plan["behavioral_questions"]:
+                st.table(interview_plan["behavioral_questions"])
+
+            st.warning(interview_plan["truthfulness_note"])
+
+            interview_report_text = (
+                "TalentBridge AI - Evidence-Based Interview Preparation Plan\n\n"
+            )
+            interview_report_text += f"Target Career: {target_career}\n"
+            interview_report_text += interview_plan["status"] + "\n\n"
+            interview_report_text += "Technical Interview Practice\n\n"
+            for question in interview_plan["technical_questions"]:
+                interview_report_text += f"Skill: {question['Skill']}\n"
+                interview_report_text += f"Priority: {question['Priority']}\n"
+                interview_report_text += (
+                    f"Resume Evidence: {question['Resume Evidence']}\n"
+                )
+                interview_report_text += (
+                    f"Question: {question['Interview Question']}\n"
+                )
+                interview_report_text += (
+                    f"Answer Structure: {question['Answer Structure']}\n\n"
+                )
+
+            interview_report_text += "Behavioral Interview Practice\n\n"
+            for question in interview_plan["behavioral_questions"]:
+                interview_report_text += (
+                    f"Competency: {question['Competency']}\n"
+                )
+                interview_report_text += (
+                    f"Question: {question['Interview Question']}\n"
+                )
+                interview_report_text += (
+                    f"STAR + Proof Prompt: {question['STAR + Proof Prompt']}\n\n"
+                )
+
+            interview_report_text += interview_plan["truthfulness_note"]
+
+            st.download_button(
+                "Download Interview Preparation Plan",
+                data=interview_report_text,
+                file_name="talentbridge_interview_preparation_plan.txt",
                 mime="text/plain",
             )
 
