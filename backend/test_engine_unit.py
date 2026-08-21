@@ -8,6 +8,7 @@ from career_engine import (
     calculate_proof_based_readiness_score,
     calculate_semantic_match_details,
     calculate_semantic_match_score,
+    calculate_target_career_match,
     compare_resume_to_job,
     generate_interview_readiness_report,
     generate_progress_tracker,
@@ -111,6 +112,32 @@ class TalentBridgeEngineTests(unittest.TestCase):
             data_analyst["skill_gaps"],
             ai_engineer["skill_gaps"],
         )
+
+    def test_target_career_match_changes_with_selected_career(self):
+        detected_skills = analyze_resume_text(
+            "Built PowerBI dashboards using PostgreSQL and Python. "
+            "Trained machine learning models and presented to stakeholders."
+        )
+
+        data_analyst = calculate_target_career_match(
+            detected_skills,
+            "Data Analyst",
+        )
+        ai_engineer = calculate_target_career_match(
+            detected_skills,
+            "AI Engineer",
+        )
+
+        self.assertEqual(data_analyst["match_score"], 94.12)
+        self.assertEqual(ai_engineer["match_score"], 76.19)
+        self.assertEqual(data_analyst["target_career"], "Data Analyst")
+        self.assertEqual(ai_engineer["target_career"], "AI Engineer")
+
+    def test_target_career_match_requires_resume_evidence(self):
+        result = calculate_target_career_match([], "Data Analyst")
+
+        self.assertEqual(result["match_score"], 0.0)
+        self.assertEqual(result["status"], "No resume evidence detected")
 
     def test_resume_and_job_matching(self):
         resume_skills = analyze_resume_text("Built dashboards using Python, SQL, and Power BI.")
