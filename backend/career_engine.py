@@ -1236,3 +1236,155 @@ def generate_resume_improvement_plan(resume_text, job_required_skills):
             "Use each bullet prompt only with facts you can explain and prove."
         ),
     }
+
+
+def generate_interview_preparation_plan(resume_text, job_required_skills):
+    """Create truthful interview practice from the resume and job requirements."""
+    required_skills = list(dict.fromkeys(job_required_skills or []))
+
+    if not required_skills:
+        return {
+            "required_skill_count": 0,
+            "technical_question_count": 0,
+            "behavioral_question_count": 0,
+            "high_priority_question_count": 0,
+            "missing_skill_count": 0,
+            "status": "No job requirements detected.",
+            "technical_questions": [],
+            "behavioral_questions": [],
+            "truthfulness_note": (
+                "Never invent interview answers, experience, projects, or results."
+            ),
+        }
+
+    detected_skills = analyze_resume_text(resume_text)
+    comparison = compare_resume_to_job(detected_skills, required_skills)
+    confidence_report = analyze_skill_confidence(resume_text, detected_skills)
+    confidence_by_skill = {
+        item["Skill"]: item["Confidence Level"]
+        for item in confidence_report
+    }
+    missing_skills = set(comparison["missing_skills"])
+
+    technical_questions = []
+    for skill in required_skills:
+        if skill in missing_skills:
+            priority = "High"
+            evidence_level = "Missing"
+            question = (
+                f"This role requires {skill}, but your resume does not show it. "
+                "How would you answer honestly if the interviewer asks about "
+                "your current experience and learning plan?"
+            )
+            answer_prompt = (
+                "Current truth: state your real level; Relevant foundation: "
+                "connect only proven skills; Plan: name a concrete next step; "
+                "Boundary: do not claim hands-on experience you do not have."
+            )
+        else:
+            evidence_level = confidence_by_skill.get(skill, "Weak Evidence")
+            if evidence_level == "Strong Evidence":
+                priority = "Practice"
+                question = (
+                    f"Walk me through a real project or task where you used {skill}. "
+                    "What problem did you solve, what did you personally do, and "
+                    "what was the result?"
+                )
+            else:
+                priority = "High" if evidence_level == "Weak Evidence" else "Medium"
+                question = (
+                    f"Your resume mentions {skill} with limited detail. What is "
+                    "your strongest real example, and what can you prove about "
+                    "your contribution?"
+                )
+            answer_prompt = (
+                "Situation: real context; Task: your responsibility; Action: "
+                f"what you personally did with {skill}; Result: truthful outcome; "
+                "Proof: artifact, metric, or explanation you can defend."
+            )
+
+        technical_questions.append(
+            {
+                "Priority": priority,
+                "Skill": skill,
+                "Resume Evidence": evidence_level,
+                "Interview Question": question,
+                "Answer Structure": answer_prompt,
+            }
+        )
+
+    priority_order = {"High": 0, "Medium": 1, "Practice": 2}
+    technical_questions.sort(key=lambda item: priority_order[item["Priority"]])
+
+    behavioral_questions = [
+        {
+            "Competency": "Communication",
+            "Interview Question": (
+                "Tell me about a time you explained a technical finding to a "
+                "non-technical stakeholder."
+            ),
+            "STAR + Proof Prompt": (
+                "Situation; Task; Action; Result; name the real presentation, "
+                "report, dashboard, feedback, or decision that supports the story."
+            ),
+        },
+        {
+            "Competency": "Problem Solving",
+            "Interview Question": (
+                "Describe a difficult technical problem you diagnosed and solved."
+            ),
+            "STAR + Proof Prompt": (
+                "Situation; Task; diagnostic steps; your specific action; truthful "
+                "result; evidence you can explain or show."
+            ),
+        },
+        {
+            "Competency": "Learning Agility",
+            "Interview Question": (
+                "Tell me how you would close a required-skill gap while remaining "
+                "honest about your current level."
+            ),
+            "STAR + Proof Prompt": (
+                "Current gap; relevant foundation; learning plan; practice project; "
+                "verification milestone; do not claim unearned experience."
+            ),
+        },
+        {
+            "Competency": "Ownership",
+            "Interview Question": (
+                "Tell me about a time you took ownership of a project from unclear "
+                "requirements through delivery."
+            ),
+            "STAR + Proof Prompt": (
+                "Situation; Task; decisions you owned; collaboration; delivered "
+                "result; real artifact, metric, or stakeholder outcome."
+            ),
+        },
+    ]
+
+    high_priority_count = sum(
+        item["Priority"] == "High" for item in technical_questions
+    )
+    missing_skill_count = len(comparison["missing_skills"])
+    status = (
+        f"Practice {len(technical_questions)} technical and "
+        f"{len(behavioral_questions)} behavioral questions. Start with "
+        f"{high_priority_count} high-priority question(s)."
+    )
+
+    return {
+        "required_skill_count": len(required_skills),
+        "technical_question_count": len(technical_questions),
+        "behavioral_question_count": len(behavioral_questions),
+        "high_priority_question_count": high_priority_count,
+        "missing_skill_count": missing_skill_count,
+        "status": status,
+        "technical_questions": technical_questions,
+        "behavioral_questions": behavioral_questions,
+        "truthfulness_note": (
+            "Never invent interview answers, experience, projects, or measurable "
+            "results. Practice only stories you can explain and prove. For missing "
+            "skills, state your current level honestly and describe a concrete "
+            "learning plan."
+        ),
+    }
