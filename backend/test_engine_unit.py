@@ -11,6 +11,8 @@ from career_engine import (
     compare_resume_to_job,
     generate_interview_readiness_report,
     generate_progress_tracker,
+    rank_career_matches,
+    recommend_careers_from_resume,
 )
 
 
@@ -46,6 +48,50 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertEqual(result["skill_gaps"], {})
         self.assertEqual(result["recommended_projects"], {})
         self.assertEqual(result["readiness_score"], 100.0)
+
+    def test_resume_career_recommendation_ranks_best_fit_first(self):
+        resume = (
+            "Built PowerBI dashboards using PostgreSQL and Python 3. "
+            "Trained scikit-learn models, deployed Docker RESTful APIs to AWS, "
+            "and presented findings to stakeholders."
+        )
+
+        result = recommend_careers_from_resume(resume)
+
+        self.assertEqual(result["recommended_career"], "Data Analyst")
+        self.assertEqual(result["recommended_score"], 94.12)
+        self.assertEqual(len(result["rankings"]), 4)
+        self.assertEqual(
+            [item["rank"] for item in result["rankings"]],
+            [1, 2, 3, 4],
+        )
+        self.assertEqual(
+            result["rankings"][0]["skill_gaps"],
+            {"data_skill": 1},
+        )
+
+    def test_resume_career_recommendation_requires_detected_evidence(self):
+        result = recommend_careers_from_resume(
+            "Reliable professional seeking a new opportunity."
+        )
+
+        self.assertIsNone(result["recommended_career"])
+        self.assertEqual(result["rankings"], [])
+
+    def test_career_ranking_is_sorted_by_fit_score(self):
+        profile = {
+            "python_skill": 5,
+            "math_skill": 4,
+            "data_skill": 5,
+            "ai_skill": 2,
+            "communication_skill": 4,
+        }
+
+        rankings = rank_career_matches(profile)
+
+        scores = [item["fit_score"] for item in rankings]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+        self.assertEqual(rankings[0]["career"], "Data Analyst")
 
     def test_resume_and_job_matching(self):
         resume_skills = analyze_resume_text("Built dashboards using Python, SQL, and Power BI.")
