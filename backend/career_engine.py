@@ -105,12 +105,20 @@ def _contains_skill_keyword(normalized_text, keyword):
     return re.search(pattern, normalized_text) is not None
 
 
+def _contains_data_analysis_action(normalized_text):
+    pattern = (
+        r"\banaly[sz](?:e|ed|ing)\b"
+        r"(?:\s+[a-z0-9]+){0,4}\s+\b(?:data|datasets?)\b"
+    )
+    return re.search(pattern, normalized_text) is not None
+
+
 def detect_skills(text):
     normalized_text = _normalize_skill_text(text)
     if not normalized_text:
         return []
 
-    return [
+    detected_skills = [
         skill
         for skill, keywords in SKILL_KEYWORDS.items()
         if any(
@@ -118,6 +126,15 @@ def detect_skills(text):
             for keyword in keywords
         )
     ]
+
+    if (
+        "Data Analysis" not in detected_skills
+        and _contains_data_analysis_action(normalized_text)
+    ):
+        data_analysis_index = list(SKILL_KEYWORDS).index("Data Analysis")
+        detected_skills.insert(data_analysis_index, "Data Analysis")
+
+    return detected_skills
 
 required_skills = {
     "AI Engineer": {
@@ -1079,6 +1096,10 @@ def analyze_skill_confidence(resume_text, detected_skills):
             if any(
                 _contains_skill_keyword(sentence, keyword)
                 for keyword in skill_keywords
+            )
+            or (
+                skill == "Data Analysis"
+                and _contains_data_analysis_action(sentence)
             )
         ]
 
