@@ -14,6 +14,7 @@ from career_engine import (
     generate_interview_preparation_plan,
     generate_progress_tracker,
     generate_resume_improvement_plan,
+    prioritize_missing_skills,
     rank_career_matches,
     recommend_careers_from_resume,
 )
@@ -63,10 +64,10 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertEqual(result["recommended_career"], "Data Analyst")
         self.assertEqual(result["recommended_score"], 94.12)
-        self.assertEqual(len(result["rankings"]), 4)
+        self.assertEqual(len(result["rankings"]), 5)
         self.assertEqual(
             [item["rank"] for item in result["rankings"]],
-            [1, 2, 3, 4],
+            [1, 2, 3, 4, 5],
         )
         self.assertEqual(
             result["rankings"][0]["skill_gaps"],
@@ -140,6 +141,76 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertEqual(result["match_score"], 0.0)
         self.assertEqual(result["status"], "No resume evidence detected")
+
+    def test_qa_job_description_detects_testing_requirements(self):
+        skills = analyze_job_description(
+            "Senior QA Analyst will create test plans and test cases, perform "
+            "manual, automated, functional, regression, integration, system, performance, "
+            "and user acceptance testing, track defects and requirements traceability, "
+            "validate ETL source-to-target mappings, and test REST APIs with Postman. "
+            "Requires Databricks, Spark SQL, PySpark, Python, Pandas, and SQL."
+        )
+
+        expected = {
+            "Quality Assurance",
+            "Test Planning",
+            "Manual Testing",
+            "Test Automation",
+            "Functional Testing",
+            "Regression Testing",
+            "Integration Testing",
+            "Performance Testing",
+            "System Testing",
+            "User Acceptance Testing",
+            "Defect Management",
+            "Requirements Traceability",
+            "Data Validation",
+            "ETL Testing",
+            "API Testing",
+            "REST APIs",
+            "Apache Spark",
+            "PySpark",
+            "Databricks",
+            "Python",
+            "Pandas",
+            "SQL",
+        }
+        self.assertTrue(expected.issubset(set(skills)))
+
+    def test_testing_mode_requires_local_testing_context(self):
+        skills = analyze_resume_text(
+            "Supported user acceptance testing. Built dashboards used to "
+            "analyze operational performance."
+        )
+
+        self.assertIn("User Acceptance Testing", skills)
+        self.assertNotIn("Performance Testing", skills)
+
+    def test_qa_target_match_uses_qa_specific_benchmark(self):
+        detected_skills = analyze_resume_text(
+            "QA Analyst developed test plans and test cases, performed data "
+            "validation, ETL testing, functional, regression, integration, and "
+            "user acceptance testing, tracked defects, and wrote SQL queries."
+        )
+
+        result = calculate_target_career_match(
+            detected_skills,
+            "QA Analyst / Data Quality Analyst",
+        )
+
+        self.assertEqual(result["match_score"], 100.0)
+        self.assertEqual(result["skill_gaps"], {})
+
+    def test_qa_missing_platform_skills_are_high_priority(self):
+        report = prioritize_missing_skills(
+            ["REST APIs", "Apache Spark", "Databricks"],
+            target_career="QA Analyst / Data Quality Analyst",
+        )
+
+        self.assertEqual(
+            [item["Priority Level"] for item in report],
+            ["High Priority", "High Priority", "High Priority"],
+        )
 
     def test_resume_improvement_plan_targets_missing_job_skills(self):
         resume = (
