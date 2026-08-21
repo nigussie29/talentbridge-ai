@@ -500,6 +500,7 @@ target_career = st.sidebar.selectbox(
         "Data Analyst",
         "Machine Learning Engineer",
         "AI Education Specialist",
+        "QA Analyst / Data Quality Analyst",
     ],
 )
 
@@ -925,7 +926,8 @@ with input_col2:
             st.success("No missing skills to prioritize.")
         else:
             priority_report = prioritize_missing_skills(
-                job_comparison["missing_skills"]
+                job_comparison["missing_skills"],
+                target_career=target_career,
             )
             st.table(priority_report)
 
