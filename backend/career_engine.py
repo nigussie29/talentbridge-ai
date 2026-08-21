@@ -258,6 +258,65 @@ def create_profile_from_resume(detected_skills):
         profile["communication_skill"] = 4
 
     return profile
+
+
+def rank_career_matches(user_profile):
+    """Rank every supported career using the existing readiness model."""
+    rankings = []
+
+    for career_name in required_skills:
+        career_result = analyze_career_profile(user_profile, career_name)
+        target_requirements = required_skills[career_name]
+        strengths = [
+            skill
+            for skill, required_level in target_requirements.items()
+            if user_profile.get(skill, 0) >= required_level
+        ]
+
+        rankings.append(
+            {
+                "career": career_name,
+                "fit_score": career_result["readiness_score"],
+                "status": career_result["status"],
+                "strengths": strengths,
+                "skill_gaps": career_result["skill_gaps"],
+            }
+        )
+
+    rankings.sort(key=lambda item: item["fit_score"], reverse=True)
+
+    for rank, item in enumerate(rankings, start=1):
+        item["rank"] = rank
+
+    return rankings
+
+
+def recommend_careers_from_resume(resume_text):
+    """Create an explainable career ranking from detected resume evidence."""
+    detected_skills = analyze_resume_text(resume_text)
+
+    if not detected_skills:
+        return {
+            "recommended_career": None,
+            "recommended_score": 0.0,
+            "detected_skills": [],
+            "estimated_profile": None,
+            "rankings": [],
+        }
+
+    estimated_profile = create_profile_from_resume(detected_skills)
+    rankings = rank_career_matches(estimated_profile)
+    best_match = rankings[0]
+
+    return {
+        "recommended_career": best_match["career"],
+        "recommended_score": best_match["fit_score"],
+        "detected_skills": detected_skills,
+        "estimated_profile": estimated_profile,
+        "rankings": rankings,
+    }
+
+
 def generate_text_report(result, skill_display_names=None):
     if skill_display_names is None:
         skill_display_names = {}
