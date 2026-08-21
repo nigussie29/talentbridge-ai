@@ -82,6 +82,68 @@ SKILL_KEYWORDS = {
         "rest api", "rest apis", "restful api", "restful apis",
         "api development",
     ],
+    "Quality Assurance": [
+        "quality assurance", "qa analyst", "qa testing", "data testing",
+        "quality analyst", "software testing", "quality engineering",
+    ],
+    "Test Planning": [
+        "test plan", "test plans", "test case", "test cases",
+        "test script", "test scripts", "testing strategy",
+    ],
+    "Manual Testing": ["manual testing", "manual tester"],
+    "Test Automation": [
+        "test automation", "automated testing", "automation testing",
+        "automated test", "automated tests",
+    ],
+    "Functional Testing": ["functional testing", "functional test"],
+    "Regression Testing": [
+        "regression testing", "regression test", "regression tests",
+    ],
+    "Integration Testing": [
+        "integration testing", "integration test", "integration tests",
+    ],
+    "Performance Testing": [
+        "performance testing", "performance test", "load testing",
+        "stress testing",
+    ],
+    "System Testing": ["system testing", "system test", "system tests"],
+    "User Acceptance Testing": [
+        "user acceptance testing", "user acceptance test", "uat",
+    ],
+    "Defect Management": [
+        "defect management", "defect tracking", "defect", "defects",
+        "bug tracking", "bug fix", "bug fixes", "issue tracking",
+    ],
+    "Requirements Traceability": [
+        "requirements traceability", "requirement traceability",
+        "traceability of requirements", "traceability matrix",
+        "requirements coverage",
+    ],
+    "Data Validation": [
+        "data validation", "validate data", "validated data",
+        "validation", "validate etl", "validated etl",
+        "data reconciliation", "reconcile data", "reconciled data",
+        "data quality", "data discrepancy", "data discrepancies",
+    ],
+    "ETL Testing": [
+        "etl testing", "elt testing", "data pipeline testing",
+        "pipeline testing", "source to target", "source target mapping",
+        "source to target mapping", "data transformation testing",
+    ],
+    "API Testing": [
+        "api testing", "api test", "api tests", "postman",
+        "rest api testing", "restful api testing",
+    ],
+    "Pandas": ["pandas"],
+    "PySpark": ["pyspark"],
+    "Root Cause Analysis": [
+        "root cause analysis", "root cause investigation",
+    ],
+    "Data Engineering": ["data engineering", "data engineer"],
+    "Agile/Scrum": [
+        "agile", "scrum", "sprint planning", "daily standup",
+        "daily stand up",
+    ],
     "Docker": [
         "docker", "dockerfile", "containerization", "containerisation",
     ],
@@ -90,6 +152,17 @@ SKILL_KEYWORDS = {
     "Databricks": ["databricks"],
     "Linux": ["linux", "ubuntu", "bash scripting", "shell scripting"],
     "JavaScript": ["javascript", "typescript", "node.js", "nodejs"],
+}
+
+
+TESTING_CONTEXT_SKILLS = {
+    "Manual Testing": ["manual"],
+    "Test Automation": ["automated", "automation"],
+    "Functional Testing": ["functional"],
+    "Regression Testing": ["regression"],
+    "Integration Testing": ["integration"],
+    "Performance Testing": ["performance", "load", "stress"],
+    "System Testing": ["system"],
 }
 
 
@@ -113,6 +186,31 @@ def _contains_data_analysis_action(normalized_text):
     return re.search(pattern, normalized_text) is not None
 
 
+def _contains_testing_mode(normalized_text, keyword):
+    """Require a generic testing mode to occur in the same sentence as testing."""
+    for sentence in re.split(r"[.;:]+", normalized_text):
+        has_testing_marker = any(
+            _contains_skill_keyword(sentence, marker)
+            for marker in (
+                "quality assurance",
+                "qa analyst",
+                "qa testing",
+                "software testing",
+                "data testing",
+                "test plan",
+                "test case",
+                "test",
+                "testing",
+            )
+        )
+        if (
+            has_testing_marker
+            and _contains_skill_keyword(sentence, keyword)
+        ):
+            return True
+    return False
+
+
 def detect_skills(text):
     normalized_text = _normalize_skill_text(text)
     if not normalized_text:
@@ -124,6 +222,13 @@ def detect_skills(text):
         if any(
             _contains_skill_keyword(normalized_text, keyword)
             for keyword in keywords
+        )
+        or (
+            skill in TESTING_CONTEXT_SKILLS
+            and any(
+                _contains_testing_mode(normalized_text, keyword)
+                for keyword in TESTING_CONTEXT_SKILLS[skill]
+            )
         )
     ]
 
@@ -164,7 +269,32 @@ required_skills = {
         "data_skill": 3,
         "ai_skill": 4,
         "communication_skill": 5
+    },
+    "QA Analyst / Data Quality Analyst": {
+        "python_skill": 3,
+        "math_skill": 2,
+        "data_skill": 5,
+        "ai_skill": 1,
+        "communication_skill": 4
     }
+}
+
+
+QA_TARGET_CAREER = "QA Analyst / Data Quality Analyst"
+
+CAREER_SKILL_BENCHMARKS = {
+    QA_TARGET_CAREER: [
+        "Quality Assurance",
+        "Test Planning",
+        "Data Validation",
+        "ETL Testing",
+        "Functional Testing",
+        "Regression Testing",
+        "Integration Testing",
+        "User Acceptance Testing",
+        "Defect Management",
+        "SQL",
+    ],
 }
 
 
@@ -288,6 +418,36 @@ def calculate_target_career_match(detected_skills, target_career):
             "match_score": 0.0,
             "status": "No resume evidence detected",
             "skill_gaps": required_skills[target_career].copy(),
+        }
+
+    career_benchmark = CAREER_SKILL_BENCHMARKS.get(target_career)
+    if career_benchmark:
+        matched_skills = [
+            skill for skill in career_benchmark if skill in detected_skills
+        ]
+        missing_skills = [
+            skill for skill in career_benchmark if skill not in detected_skills
+        ]
+        match_score = round(
+            (len(matched_skills) / len(career_benchmark)) * 100,
+            2,
+        )
+
+        if match_score >= 90:
+            status = "Strong candidate"
+        elif match_score >= 75:
+            status = "Almost ready"
+        elif match_score >= 60:
+            status = "Developing candidate"
+        else:
+            status = "Beginner level - build more foundation projects"
+
+        return {
+            "target_career": target_career,
+            "match_score": match_score,
+            "status": status,
+            "skill_gaps": {skill: 1 for skill in missing_skills},
+            "matched_skills": matched_skills,
         }
 
     estimated_profile = create_profile_from_resume(detected_skills)
@@ -713,7 +873,7 @@ def calculate_improvement_score(job_comparison):
         "current_status": current_status,
         "estimated_status_after_training": estimated_status
     }
-def prioritize_missing_skills(missing_skills):
+def prioritize_missing_skills(missing_skills, target_career=None):
     high_priority = [
         "Python",
         "SQL",
@@ -729,13 +889,41 @@ def prioritize_missing_skills(missing_skills):
         "Power BI",
         "Excel",
         "Data Visualization",
-        "Data Analysis"
+        "Data Analysis",
+        "Data Engineering",
+        "Agile/Scrum"
     ]
+
+    qa_high_priority = {
+        "Quality Assurance",
+        "Test Planning",
+        "Manual Testing",
+        "Test Automation",
+        "Functional Testing",
+        "Regression Testing",
+        "Integration Testing",
+        "Performance Testing",
+        "System Testing",
+        "User Acceptance Testing",
+        "Defect Management",
+        "Requirements Traceability",
+        "Data Validation",
+        "ETL Testing",
+        "API Testing",
+        "REST APIs",
+        "Apache Spark",
+        "PySpark",
+        "Databricks",
+        "Pandas",
+        "Root Cause Analysis",
+    }
 
     priority_report = []
 
     for skill in missing_skills:
-        if skill in high_priority:
+        if target_career == QA_TARGET_CAREER and skill in qa_high_priority:
+            priority = "High Priority"
+        elif skill in high_priority:
             priority = "High Priority"
         elif skill in medium_priority:
             priority = "Medium Priority"
