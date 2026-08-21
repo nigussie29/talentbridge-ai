@@ -294,6 +294,17 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertEqual(analyze_resume_text(""), [])
         self.assertEqual(analyze_job_description(None), [])
 
+    def test_skill_detector_recognizes_data_analysis_action_evidence(self):
+        text = "Used Excel to validate records and analyzed large datasets."
+        skills = analyze_resume_text(text)
+        confidence = analyze_skill_confidence(text, skills)
+        data_analysis = next(
+            row for row in confidence if row["Skill"] == "Data Analysis"
+        )
+
+        self.assertIn("Data Analysis", skills)
+        self.assertEqual(data_analysis["Confidence Level"], "Strong Evidence")
+
     def test_skill_confidence_uses_normalized_aliases(self):
         text = "Developed a PowerBI dashboard and presented it to executives."
         detected = analyze_resume_text(text)
