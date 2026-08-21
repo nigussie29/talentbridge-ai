@@ -93,6 +93,25 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertEqual(scores, sorted(scores, reverse=True))
         self.assertEqual(rankings[0]["career"], "Data Analyst")
 
+    def test_same_resume_profile_recalculates_for_each_target_career(self):
+        profile = {
+            "python_skill": 3,
+            "math_skill": 3,
+            "data_skill": 4,
+            "ai_skill": 3,
+            "communication_skill": 4,
+        }
+
+        data_analyst = analyze_career_profile(profile, "Data Analyst")
+        ai_engineer = analyze_career_profile(profile, "AI Engineer")
+
+        self.assertEqual(data_analyst["readiness_score"], 94.12)
+        self.assertEqual(ai_engineer["readiness_score"], 76.19)
+        self.assertNotEqual(
+            data_analyst["skill_gaps"],
+            ai_engineer["skill_gaps"],
+        )
+
     def test_resume_and_job_matching(self):
         resume_skills = analyze_resume_text("Built dashboards using Python, SQL, and Power BI.")
         job_skills = analyze_job_description(
