@@ -627,12 +627,25 @@ Completion Score
 Recruiter Feedback Report
 ↓
 Improved Candidate Readiness
+
+### Explainable Career-Fit Ranking
+
+After résumé skill detection, TalentBridge AI compares the estimated profile
+with every supported career profile. It ranks AI Engineer, Data Analyst,
+Machine Learning Engineer, and AI Education Specialist by current readiness,
+then shows the best current fit and each career's remaining skill gaps.
+
+The ranking is a transparent readiness baseline, not a hiring decision or a
+claim that a machine-learning model has been trained. A production ML career
+prediction model requires a representative, labeled dataset and validation for
+accuracy and bias before it should influence users.
+
 ## Future Improvements
 
 Planned improvements include:
 
 * Add stronger NLP skill extraction
-* Add machine learning model for career prediction
+* Train and validate a career prediction model on real labeled outcome data
 * Add semantic job-resume matching using embeddings
 * Add RAG assistant for job and scholarship documents
 * Add user login
