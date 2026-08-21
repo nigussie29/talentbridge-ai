@@ -11,6 +11,7 @@ from career_engine import (
     calculate_target_career_match,
     compare_resume_to_job,
     generate_interview_readiness_report,
+    generate_interview_preparation_plan,
     generate_progress_tracker,
     generate_resume_improvement_plan,
     rank_career_matches,
@@ -183,6 +184,59 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertEqual(plan["required_skill_count"], 0)
         self.assertEqual(plan["actions"], [])
+        self.assertEqual(plan["status"], "No job requirements detected.")
+
+    def test_interview_plan_prioritizes_missing_skills_truthfully(self):
+        resume = (
+            "Built PowerBI dashboards using PostgreSQL and Python 3. "
+            "Trained scikit-learn models, deployed Docker RESTful APIs to AWS, "
+            "and presented findings to stakeholders."
+        )
+        job_skills = analyze_job_description(
+            "Python, SQL Server, Power-BI, MS Excel, Azure, machine learning, "
+            "Docker, Kubernetes, REST APIs, and stakeholder communication."
+        )
+
+        plan = generate_interview_preparation_plan(resume, job_skills)
+        high_priority = [
+            item for item in plan["technical_questions"]
+            if item["Priority"] == "High"
+        ]
+
+        self.assertEqual(plan["technical_question_count"], 10)
+        self.assertEqual(plan["behavioral_question_count"], 4)
+        self.assertEqual(plan["high_priority_question_count"], 2)
+        self.assertEqual(plan["missing_skill_count"], 2)
+        self.assertEqual(
+            [item["Skill"] for item in high_priority],
+            ["Excel", "Kubernetes"],
+        )
+        self.assertTrue(
+            all(item["Resume Evidence"] == "Missing" for item in high_priority)
+        )
+        self.assertIn("Never invent", plan["truthfulness_note"])
+
+    def test_interview_plan_uses_star_and_proof_for_supported_skills(self):
+        plan = generate_interview_preparation_plan(
+            "Built a Python reporting tool for a real project.",
+            ["Python"],
+        )
+
+        question = plan["technical_questions"][0]
+        self.assertEqual(question["Priority"], "Practice")
+        self.assertEqual(question["Resume Evidence"], "Strong Evidence")
+        self.assertIn("Situation", question["Answer Structure"])
+        self.assertIn("Proof", question["Answer Structure"])
+
+    def test_interview_plan_handles_no_job_requirements(self):
+        plan = generate_interview_preparation_plan(
+            "Built a Python project.",
+            [],
+        )
+
+        self.assertEqual(plan["technical_question_count"], 0)
+        self.assertEqual(plan["behavioral_question_count"], 0)
+        self.assertEqual(plan["technical_questions"], [])
         self.assertEqual(plan["status"], "No job requirements detected.")
 
     def test_resume_and_job_matching(self):
