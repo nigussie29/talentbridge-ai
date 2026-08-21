@@ -12,6 +12,7 @@ from career_engine import (
     compare_resume_to_job,
     generate_interview_readiness_report,
     generate_progress_tracker,
+    generate_resume_improvement_plan,
     rank_career_matches,
     recommend_careers_from_resume,
 )
@@ -138,6 +139,51 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertEqual(result["match_score"], 0.0)
         self.assertEqual(result["status"], "No resume evidence detected")
+
+    def test_resume_improvement_plan_targets_missing_job_skills(self):
+        resume = (
+            "Built PowerBI dashboards using PostgreSQL and Python 3. "
+            "Trained scikit-learn models, deployed Docker RESTful APIs to AWS, "
+            "and presented findings to stakeholders."
+        )
+        job_skills = analyze_job_description(
+            "Python, SQL Server, Power-BI, MS Excel, Azure, machine learning, "
+            "Docker, Kubernetes, REST APIs, and stakeholder communication."
+        )
+
+        plan = generate_resume_improvement_plan(resume, job_skills)
+
+        missing_actions = [
+            item for item in plan["actions"]
+            if item["Current Evidence"] == "Missing"
+        ]
+        self.assertEqual(plan["required_skill_count"], 10)
+        self.assertEqual(plan["matched_skill_count"], 8)
+        self.assertEqual(plan["missing_skill_count"], 2)
+        self.assertEqual(
+            [item["Skill"] for item in missing_actions],
+            ["Excel", "Kubernetes"],
+        )
+        self.assertIn("Never invent", plan["truthfulness_note"])
+
+    def test_resume_improvement_plan_identifies_weak_evidence(self):
+        plan = generate_resume_improvement_plan(
+            "Currently learning Python and exploring SQL.",
+            ["Python", "SQL"],
+        )
+
+        self.assertEqual(plan["missing_skill_count"], 0)
+        self.assertEqual(plan["needs_stronger_evidence_count"], 2)
+        self.assertTrue(
+            all(item["Current Evidence"] == "Weak Evidence" for item in plan["actions"])
+        )
+
+    def test_resume_improvement_plan_handles_no_job_requirements(self):
+        plan = generate_resume_improvement_plan("Built a Python project.", [])
+
+        self.assertEqual(plan["required_skill_count"], 0)
+        self.assertEqual(plan["actions"], [])
+        self.assertEqual(plan["status"], "No job requirements detected.")
 
     def test_resume_and_job_matching(self):
         resume_skills = analyze_resume_text("Built dashboards using Python, SQL, and Power BI.")

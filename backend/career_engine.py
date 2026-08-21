@@ -1122,3 +1122,117 @@ def analyze_skill_confidence(resume_text, detected_skills):
         )
 
     return confidence_results
+
+
+def generate_resume_improvement_plan(resume_text, job_required_skills):
+    """Create truthful, job-specific resume improvement guidance."""
+    required_skills = list(dict.fromkeys(job_required_skills or []))
+
+    if not required_skills:
+        return {
+            "required_skill_count": 0,
+            "matched_skill_count": 0,
+            "missing_skill_count": 0,
+            "needs_stronger_evidence_count": 0,
+            "strong_evidence_count": 0,
+            "status": "No job requirements detected.",
+            "actions": [],
+            "truthfulness_note": (
+                "Never invent skills, experience, projects, or measurable results."
+            ),
+        }
+
+    detected_skills = analyze_resume_text(resume_text)
+    comparison = compare_resume_to_job(detected_skills, required_skills)
+    confidence_report = analyze_skill_confidence(resume_text, detected_skills)
+    confidence_by_skill = {
+        item["Skill"]: item["Confidence Level"]
+        for item in confidence_report
+    }
+
+    actions = []
+    strong_evidence_count = 0
+    needs_stronger_evidence_count = 0
+    missing_skills = set(comparison["missing_skills"])
+
+    for skill in required_skills:
+        bullet_prompt = (
+            f"[Action verb] [task or project] using {skill}, resulting in "
+            "[truthful measurable outcome]."
+        )
+
+        if skill in missing_skills:
+            priority = "High"
+            evidence_level = "Missing"
+            guidance = (
+                "Do not add this skill unless it is truthful. First complete or "
+                "document a real project, course, or work example."
+            )
+        else:
+            evidence_level = confidence_by_skill.get(skill, "Weak Evidence")
+
+            if evidence_level == "Strong Evidence":
+                priority = "Maintain"
+                strong_evidence_count += 1
+                guidance = (
+                    "Keep the existing evidence. Add scale, scope, or a measurable "
+                    "outcome if that information is available."
+                )
+            elif evidence_level == "Medium Evidence":
+                priority = "Medium"
+                needs_stronger_evidence_count += 1
+                guidance = (
+                    "Strengthen the mention with a truthful action, project context, "
+                    "and measurable outcome."
+                )
+            else:
+                priority = "Medium"
+                needs_stronger_evidence_count += 1
+                guidance = (
+                    "Replace learning-only language with completed evidence only "
+                    "after you have genuinely used the skill."
+                )
+
+        actions.append(
+            {
+                "Priority": priority,
+                "Skill": skill,
+                "Current Evidence": evidence_level,
+                "Guidance": guidance,
+                "Truthful Bullet Prompt": bullet_prompt,
+            }
+        )
+
+    priority_order = {"High": 0, "Medium": 1, "Maintain": 2}
+    actions.sort(key=lambda item: priority_order[item["Priority"]])
+
+    missing_skill_count = len(comparison["missing_skills"])
+    if missing_skill_count:
+        status = (
+            f"Close or honestly document {missing_skill_count} missing required "
+            "skill(s) before presenting this resume as a complete match."
+        )
+    elif needs_stronger_evidence_count:
+        status = (
+            f"All required skills are mentioned, but {needs_stronger_evidence_count} "
+            "skill(s) need stronger evidence."
+        )
+    else:
+        status = (
+            "All detected job requirements have strong resume evidence. Focus on "
+            "clarity, measurable outcomes, and concise tailoring."
+        )
+
+    return {
+        "required_skill_count": len(required_skills),
+        "matched_skill_count": len(comparison["matched_skills"]),
+        "missing_skill_count": missing_skill_count,
+        "needs_stronger_evidence_count": needs_stronger_evidence_count,
+        "strong_evidence_count": strong_evidence_count,
+        "status": status,
+        "actions": actions,
+        "truthfulness_note": (
+            "Never invent skills, experience, projects, or measurable results. "
+            "Use each bullet prompt only with facts you can explain and prove."
+        ),
+    }

@@ -655,6 +655,19 @@ claim that a machine-learning model has been trained. A production ML career
 prediction model requires a representative, labeled dataset and validation for
 accuracy and bias before it should influence users.
 
+### Evidence-Based Résumé Improvement Coach
+
+For each skill required by the pasted job description, the coach separates:
+
+- missing skills that should not be claimed without real evidence;
+- matched skills that need stronger action, project, or outcome evidence; and
+- skills already supported by strong résumé evidence.
+
+It produces prioritized guidance and truthful bullet-writing prompts using the
+structure **action + task/project + skill/tool + measurable outcome**. The app
+does not generate fictional accomplishments and explicitly instructs users to
+include only facts they can explain and prove.
+
 ## Future Improvements
 
 Planned improvements include:

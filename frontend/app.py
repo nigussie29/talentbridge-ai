@@ -30,6 +30,7 @@ from career_engine import (
     screen_multiple_candidates,
     generate_interview_readiness_report,
     analyze_skill_confidence,
+    generate_resume_improvement_plan,
     recommend_careers_from_resume,
 
 
@@ -976,6 +977,64 @@ with input_col2:
         # Job Seeker Mode
         # -----------------------------
         if user_mode == "Job Seeker":
+            st.subheader("Evidence-Based Resume Improvement Coach")
+
+            resume_improvement_plan = generate_resume_improvement_plan(
+                match_result.get("resume_text", ""),
+                job_required_skills,
+            )
+
+            coach_col1, coach_col2, coach_col3 = st.columns(3)
+            with coach_col1:
+                st.metric(
+                    "Missing Required Skills",
+                    resume_improvement_plan["missing_skill_count"],
+                )
+            with coach_col2:
+                st.metric(
+                    "Needs Stronger Evidence",
+                    resume_improvement_plan["needs_stronger_evidence_count"],
+                )
+            with coach_col3:
+                st.metric(
+                    "Strong Evidence Skills",
+                    resume_improvement_plan["strong_evidence_count"],
+                )
+
+            st.info(resume_improvement_plan["status"])
+
+            if resume_improvement_plan["actions"]:
+                st.table(resume_improvement_plan["actions"])
+            else:
+                st.caption(
+                    "Add a job description with recognizable requirements to "
+                    "generate targeted resume guidance."
+                )
+
+            st.warning(resume_improvement_plan["truthfulness_note"])
+
+            resume_coach_report = "TalentBridge AI - Resume Improvement Plan\n\n"
+            resume_coach_report += resume_improvement_plan["status"] + "\n\n"
+            for action in resume_improvement_plan["actions"]:
+                resume_coach_report += f"Skill: {action['Skill']}\n"
+                resume_coach_report += f"Priority: {action['Priority']}\n"
+                resume_coach_report += (
+                    f"Current Evidence: {action['Current Evidence']}\n"
+                )
+                resume_coach_report += f"Guidance: {action['Guidance']}\n"
+                resume_coach_report += (
+                    "Truthful Bullet Prompt: "
+                    f"{action['Truthful Bullet Prompt']}\n\n"
+                )
+            resume_coach_report += resume_improvement_plan["truthfulness_note"]
+
+            st.download_button(
+                "Download Resume Improvement Plan",
+                data=resume_coach_report,
+                file_name="talentbridge_resume_improvement_plan.txt",
+                mime="text/plain",
+            )
+
             st.subheader("Personalized Course Plan")
 
             if len(job_comparison["missing_skills"]) == 0:
