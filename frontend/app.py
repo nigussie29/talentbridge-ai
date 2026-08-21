@@ -25,6 +25,7 @@ from career_engine import (
     calculate_improvement_score,
     prioritize_missing_skills,
     calculate_semantic_match_details,
+    calculate_target_career_match,
     calculate_proof_based_readiness_score,
     screen_multiple_candidates,
     generate_interview_readiness_report,
@@ -814,14 +815,19 @@ with input_col2:
             )
             semantic_match_score = semantic_match_details["semantic_score"]
         mode_report_text = match_result["mode_report_text"]
+        target_career_match = calculate_target_career_match(
+            resume_skills,
+            target_career,
+        )
 
         st.subheader("Job Match Result")
+        st.info(f"Selected Target Career: {target_career}")
 
-        metric_col1, metric_col2 = st.columns(2)
+        metric_col1, metric_col2, metric_col3 = st.columns(3)
 
         with metric_col1:
             st.metric(
-                label="Job Match Score",
+                label="Job Description Match",
                 value=f"{job_comparison['match_score']}%",
             )
 
@@ -830,6 +836,18 @@ with input_col2:
                 label="Semantic Match Score",
                 value=f"{semantic_match_score}%",
             )
+
+        with metric_col3:
+            st.metric(
+                label="Target Career Match",
+                value=f"{target_career_match['match_score']}%",
+            )
+
+        st.caption(
+            "Job Description Match and Semantic Match measure the pasted job "
+            "posting. Target Career Match updates automatically when the sidebar "
+            "career changes."
+        )
 
         with st.expander("How the semantic score is calculated"):
             semantic_col1, semantic_col2 = st.columns(2)

@@ -260,6 +260,30 @@ def create_profile_from_resume(detected_skills):
     return profile
 
 
+def calculate_target_career_match(detected_skills, target_career):
+    """Score resume evidence against the selected career benchmark."""
+    if target_career not in required_skills:
+        raise ValueError(f"Unsupported target career: {target_career}")
+
+    if not detected_skills:
+        return {
+            "target_career": target_career,
+            "match_score": 0.0,
+            "status": "No resume evidence detected",
+            "skill_gaps": required_skills[target_career].copy(),
+        }
+
+    estimated_profile = create_profile_from_resume(detected_skills)
+    career_result = analyze_career_profile(estimated_profile, target_career)
+
+    return {
+        "target_career": target_career,
+        "match_score": career_result["readiness_score"],
+        "status": career_result["status"],
+        "skill_gaps": career_result["skill_gaps"],
+    }
+
+
 def rank_career_matches(user_profile):
     """Rank every supported career using the existing readiness model."""
     rankings = []

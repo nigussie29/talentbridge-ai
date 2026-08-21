@@ -346,6 +346,19 @@ score only because the resume says `PostgreSQL`, `PowerBI`, or `AWS` while the
 job posting says `SQL Server`, `Power-BI`, or `Azure`. If no known job skills are
 detected, the app safely falls back to context similarity alone.
 
+### Job Description Match vs. Target Career Match
+
+The results clearly separate two different comparisons:
+
+- **Job Description Match** measures detected résumé skills against the pasted
+  job posting and changes when the posting or résumé changes.
+- **Target Career Match** measures the résumé-derived profile against the
+  selected career benchmark and updates automatically when the sidebar career
+  changes.
+
+This separation prevents a target-career selection from silently changing the
+meaning of the score for a real pasted job description.
+
 ### Proof-Based Readiness Score
 
 TalentBridge AI goes beyond resume matching by measuring whether a candidate can prove their skills with real evidence.
