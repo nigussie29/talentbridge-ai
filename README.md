@@ -634,6 +634,8 @@ After résumé skill detection, TalentBridge AI compares the estimated profile
 with every supported career profile. It ranks AI Engineer, Data Analyst,
 Machine Learning Engineer, and AI Education Specialist by current readiness,
 then shows the best current fit and each career's remaining skill gaps.
+The readiness result recalculates automatically whenever the user edits the
+résumé or selects a different target career in the sidebar.
 
 The ranking is a transparent readiness baseline, not a hiring decision or a
 claim that a machine-learning model has been trained. A production ML career
