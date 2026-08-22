@@ -19,6 +19,7 @@ from career_engine import (
     generate_match_action_summary,
     generate_progress_tracker,
     generate_resume_improvement_plan,
+    generate_score_interpretation,
     prioritize_missing_skills,
     rank_career_matches,
     recommend_careers_from_resume,
@@ -27,6 +28,99 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_score_interpretation_explains_three_different_scores(self):
+        result = generate_score_interpretation(
+            {
+                "matched_skills": ["Python", "SQL", "Machine Learning", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            {
+                "semantic_score": 78.55,
+                "context_similarity_score": 38.71,
+                "skill_alignment_score": 100.0,
+                "preferred_skill_count": 3,
+            },
+            {
+                "target_career": "AI Engineer",
+                "match_score": 61.9,
+                "status": "Developing candidate",
+            },
+        )
+
+        self.assertEqual(len(result["scores"]), 3)
+        self.assertIn("4 of 4 required skills", result["scores"][0]["Why This Result"])
+        self.assertIn("3 preferred", result["scores"][0]["Why This Result"])
+        self.assertIn("65% required-skill alignment", result["scores"][1]["Why This Result"])
+        self.assertIn("broader AI Engineer benchmark", result["scores"][2]["Why This Result"])
+        self.assertIn("fits better than the broader AI Engineer", result["summary"])
+
+    def test_score_interpretation_explains_context_boost(self):
+        result = generate_score_interpretation(
+            {
+                "matched_skills": ["Python"],
+                "missing_skills": ["SQL"],
+                "match_score": 50.0,
+            },
+            {
+                "semantic_score": 65.0,
+                "context_similarity_score": 92.86,
+                "skill_alignment_score": 50.0,
+                "preferred_skill_count": 0,
+            },
+            {
+                "target_career": "Data Analyst",
+                "match_score": 80.0,
+                "status": "Almost ready",
+            },
+        )
+
+        self.assertIn("context are stronger", result["summary"])
+        self.assertIn("Broader Data Analyst readiness", result["summary"])
+        self.assertIn("missing required skills", result["next_step"])
+
+    def test_score_interpretation_handles_consistent_scores(self):
+        result = generate_score_interpretation(
+            {
+                "matched_skills": ["Python", "SQL"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            {
+                "semantic_score": 94.0,
+                "context_similarity_score": 82.86,
+                "skill_alignment_score": 100.0,
+                "preferred_skill_count": 0,
+            },
+            {
+                "target_career": "Data Analyst",
+                "match_score": 94.12,
+                "status": "Strong candidate",
+            },
+        )
+
+        self.assertIn("consistent story", result["summary"])
+        self.assertIn("evidence-based examples", result["next_step"])
+
+    def test_score_interpretation_requires_job_information(self):
+        result = generate_score_interpretation(
+            {"matched_skills": [], "missing_skills": [], "match_score": 0.0},
+            {
+                "semantic_score": 20.0,
+                "context_similarity_score": 20.0,
+                "skill_alignment_score": 0.0,
+                "preferred_skill_count": 0,
+            },
+            {
+                "target_career": "AI Engineer",
+                "match_score": 60.0,
+                "status": "Developing candidate",
+            },
+        )
+
+        self.assertIn("lacks recognizable required skills", result["summary"])
+        self.assertIn("complete job responsibilities", result["next_step"])
+
     def test_job_skill_classifier_separates_required_and_preferred(self):
         result = classify_job_skills(
             "Required skills: Python and SQL. "
