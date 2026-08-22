@@ -410,6 +410,16 @@ The results clearly separate two different comparisons:
 This separation prevents a target-career selection from silently changing the
 meaning of the score for a real pasted job description.
 
+### Score Interpretation
+
+The results page includes a **Why These Scores Differ** explanation for the
+three public scores. It shows that Job Description Match counts required-skill
+coverage, Semantic Match combines 65% required-skill alignment with 35%
+résumé/job context similarity, and Target Career Match compares the résumé with
+the broader selected-career benchmark. The panel identifies the main reason for
+large score differences and provides one evidence-based next step without
+treating any score as a hiring guarantee.
+
 ### Proof-Based Readiness Score
 
 TalentBridge AI goes beyond resume matching by measuring whether a candidate can prove their skills with real evidence.
