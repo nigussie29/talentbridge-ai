@@ -10,6 +10,7 @@ from career_engine import (
     calculate_semantic_match_details,
     calculate_semantic_match_score,
     calculate_target_career_match,
+    classify_job_skills,
     compare_resume_to_job,
     evaluate_critical_requirements,
     generate_application_decision,
@@ -26,6 +27,79 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_job_skill_classifier_separates_required_and_preferred(self):
+        result = classify_job_skills(
+            "Required skills: Python and SQL. "
+            "Kubernetes and Databricks are preferred."
+        )
+
+        self.assertEqual(result["required_skills"], ["Python", "SQL"])
+        self.assertEqual(
+            result["preferred_skills"],
+            ["Kubernetes", "Databricks"],
+        )
+        self.assertEqual(
+            result["classification_method"],
+            "explicit_preference_markers",
+        )
+
+    def test_preferred_skills_do_not_lower_required_match(self):
+        resume_skills = analyze_resume_text("Built Python and SQL pipelines.")
+        requirements = classify_job_skills(
+            "Python and SQL are required. Kubernetes is nice to have."
+        )
+
+        comparison = compare_resume_to_job(
+            resume_skills,
+            requirements["required_skills"],
+        )
+        semantic = calculate_semantic_match_details(
+            "Built Python and SQL pipelines.",
+            "Python and SQL are required. Kubernetes is nice to have.",
+        )
+
+        self.assertEqual(comparison["match_score"], 100.0)
+        self.assertEqual(comparison["missing_skills"], [])
+        self.assertEqual(requirements["preferred_skills"], ["Kubernetes"])
+        self.assertEqual(semantic["skill_alignment_score"], 100.0)
+        self.assertEqual(semantic["required_skill_count"], 2)
+        self.assertEqual(semantic["preferred_skill_count"], 1)
+
+    def test_required_classification_wins_when_skill_appears_in_both_groups(self):
+        result = classify_job_skills(
+            "Kubernetes is preferred. Kubernetes is required for deployment."
+        )
+
+        self.assertEqual(result["required_skills"], ["Kubernetes"])
+        self.assertEqual(result["preferred_skills"], [])
+
+    def test_job_skill_classifier_supports_preferred_sections(self):
+        result = classify_job_skills(
+            "Requirements:\nPython and SQL\n"
+            "Preferred Qualifications:\nDocker and Kubernetes"
+        )
+
+        self.assertEqual(result["required_skills"], ["Python", "SQL"])
+        self.assertEqual(
+            result["preferred_skills"],
+            ["Docker", "Kubernetes"],
+        )
+
+    def test_unmarked_job_skills_remain_required_for_compatibility(self):
+        result = classify_job_skills(
+            "Seeking a data analyst with Python, SQL, Power BI, and Excel."
+        )
+
+        self.assertEqual(
+            result["required_skills"],
+            ["Python", "SQL", "Power BI", "Excel"],
+        )
+        self.assertEqual(result["preferred_skills"], [])
+        self.assertEqual(
+            result["classification_method"],
+            "unmarked_skills_treated_as_required",
+        )
+
     def test_application_decision_reports_strong_supported_match(self):
         result = generate_application_decision(
             {

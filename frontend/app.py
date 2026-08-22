@@ -16,10 +16,10 @@ from career_engine import (
     analyze_resume_text,
     create_profile_from_resume,
     generate_text_report,
-    analyze_job_description,
     validate_analysis_inputs,
     evaluate_critical_requirements,
     compare_resume_to_job,
+    classify_job_skills,
     generate_course_plan,
     generate_hr_report,
     generate_mode_report,
@@ -782,8 +782,14 @@ with input_col2:
                 st.warning(quality_warning)
 
             resume_skills = analyze_resume_text(resume_text)
-            job_required_skills = analyze_job_description(job_description_text)
+            job_skill_requirements = classify_job_skills(job_description_text)
+            job_required_skills = job_skill_requirements["required_skills"]
+            job_preferred_skills = job_skill_requirements["preferred_skills"]
             job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
+            preferred_comparison = compare_resume_to_job(
+                resume_skills,
+                job_preferred_skills,
+            )
             hr_report = generate_hr_report(job_comparison)
             improvement_score = calculate_improvement_score(job_comparison)
             semantic_match_details = calculate_semantic_match_details(
@@ -810,8 +816,11 @@ with input_col2:
                 "resume_text": resume_text,
                 "job_description_text": job_description_text,
                 "resume_skills": resume_skills,
+                "job_skill_requirements": job_skill_requirements,
                 "job_required_skills": job_required_skills,
+                "job_preferred_skills": job_preferred_skills,
                 "job_comparison": job_comparison,
+                "preferred_comparison": preferred_comparison,
                 "hr_report": hr_report,
                 "improvement_score": improvement_score,
                 "semantic_match_score": semantic_match_score,
@@ -840,32 +849,43 @@ with input_col2:
 
     if match_result is not None:
         resume_skills = match_result["resume_skills"]
-        job_required_skills = match_result["job_required_skills"]
-        job_comparison = match_result["job_comparison"]
-        hr_report = match_result["hr_report"]
-        improvement_score = match_result["improvement_score"]
-        semantic_match_score = match_result["semantic_match_score"]
-        semantic_match_details = match_result.get("semantic_match_details")
-        if semantic_match_details is None:
-            semantic_match_details = calculate_semantic_match_details(
-                match_result.get("resume_text", ""),
-                match_result.get("job_description_text", ""),
+        job_skill_requirements = match_result.get("job_skill_requirements")
+        if job_skill_requirements is None:
+            # Reclassify older saved analyses so preferred skills no longer
+            # reduce the current required-skill score.
+            job_skill_requirements = classify_job_skills(
+                match_result.get("job_description_text", "")
             )
-            semantic_match_score = semantic_match_details["semantic_score"]
+        job_required_skills = job_skill_requirements["required_skills"]
+        job_preferred_skills = job_skill_requirements["preferred_skills"]
+        job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
+        preferred_comparison = compare_resume_to_job(
+            resume_skills,
+            job_preferred_skills,
+        )
+        hr_report = generate_hr_report(job_comparison)
+        improvement_score = calculate_improvement_score(job_comparison)
+        semantic_match_details = calculate_semantic_match_details(
+            match_result.get("resume_text", ""),
+            match_result.get("job_description_text", ""),
+        )
+        semantic_match_score = semantic_match_details["semantic_score"]
         critical_requirements = match_result.get("critical_requirements")
         if critical_requirements is None:
             critical_requirements = evaluate_critical_requirements(
                 match_result.get("resume_text", ""),
                 match_result.get("job_description_text", ""),
             )
-        application_decision = match_result.get("application_decision")
-        if application_decision is None:
-            application_decision = generate_application_decision(
-                job_comparison,
-                semantic_match_score,
-                critical_requirements,
-            )
-        mode_report_text = match_result["mode_report_text"]
+        application_decision = generate_application_decision(
+            job_comparison,
+            semantic_match_score,
+            critical_requirements,
+        )
+        mode_report_text = generate_mode_report(
+            user_mode,
+            job_comparison,
+            hr_report,
+        )
         target_career_match = calculate_target_career_match(
             resume_skills,
             target_career,
@@ -927,6 +947,36 @@ with input_col2:
             "posting. Target Career Match updates automatically when the sidebar "
             "career changes."
         )
+
+        preferred_matched_count = len(preferred_comparison["matched_skills"])
+        preferred_gap_count = len(preferred_comparison["missing_skills"])
+        classification_panel = st.expander(
+            "Required vs. Preferred Skills — "
+            f"{len(job_required_skills)} required, "
+            f"{len(job_preferred_skills)} preferred"
+        )
+        required_col, preferred_col = classification_panel.columns(2)
+        with required_col:
+            st.markdown("#### Required Skills")
+            render_compact_skill_list(
+                st,
+                job_required_skills,
+                "No required skills detected.",
+            )
+        with preferred_col:
+            st.markdown("#### Preferred Skills")
+            render_compact_skill_list(
+                st,
+                job_preferred_skills,
+                "No explicitly preferred skills detected.",
+            )
+        if job_preferred_skills:
+            classification_panel.caption(
+                f"Preferred evidence: {preferred_matched_count} present · "
+                f"{preferred_gap_count} opportunities. Preferred gaps do not "
+                "lower the required-skill match."
+            )
+        classification_panel.caption(job_skill_requirements["disclaimer"])
 
         critical_panel = st.expander(
             "Critical Requirements — "
@@ -1041,7 +1091,8 @@ with input_col2:
         missing_count = len(job_comparison["missing_skills"])
         st.caption(
             f"{matched_count} matched · {missing_count} gaps · "
-            f"{len(job_required_skills)} job requirements detected"
+            f"{len(job_required_skills)} required job skills detected · "
+            f"{len(job_preferred_skills)} preferred"
         )
 
         skills_panel = st.expander(

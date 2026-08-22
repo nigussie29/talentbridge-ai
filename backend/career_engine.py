@@ -550,10 +550,6 @@ def generate_text_report(result, skill_display_names=None):
                 report += f"- {project}\n"
 
     return report
-def analyze_job_description(job_description_text):
-    return detect_skills(job_description_text)
-
-
 ANALYSIS_INSTRUCTION_PHRASES = (
     "click compare",
     "compare resume to job description",
@@ -627,9 +623,113 @@ def _requirement_sentences(text):
 
 def _is_optional_requirement(text):
     return re.search(
-        r"\b(?:preferred|nice to have|bonus|desirable|optional)\b",
+        r"\b(?:preferred|nice to have|bonus|desirable|optional|a plus|plus)\b",
         _normalize_skill_text(text),
     ) is not None
+
+
+REQUIRED_SKILL_MARKERS = re.compile(
+    r"\b(?:required|must|required skills?|minimum qualifications?|"
+    r"strong(?:ly)?|advanced|proficien(?:t|cy)|hands on|"
+    r"experience (?:with|using|in)|responsibilities?)\b"
+)
+
+
+def _job_skill_statements(text):
+    """Yield job-posting statements while preserving section intent."""
+    section_type = None
+    for raw_line in re.split(r"[\r\n]+", str(text or "")):
+        line = raw_line.strip(" \t-*•")
+        if not line:
+            continue
+
+        normalized_line = _normalize_skill_text(line)
+        heading_text = normalized_line.rstrip(":")
+        heading_word_count = len(heading_text.split())
+        is_heading = line.rstrip().endswith(":") and heading_word_count <= 5
+
+        if is_heading and re.search(
+            r"\b(?:preferred|nice to have|optional|bonus|desirable)\b",
+            heading_text,
+        ):
+            section_type = "preferred"
+            continue
+        if is_heading and re.search(
+            r"\b(?:requirements?|required skills?|qualifications?|"
+            r"minimum qualifications?|responsibilities?)\b",
+            heading_text,
+        ):
+            section_type = "required"
+            continue
+
+        statements = re.split(r"(?<=[.!?;])\s+|\s*;\s*", line)
+        for statement in statements:
+            statement = statement.strip(" \t-*•")
+            if statement:
+                yield statement, section_type
+
+
+def classify_job_skills(job_description_text):
+    """Separate required skills from optional or preferred job skills.
+
+    Explicit preference language wins for its statement. Skills mentioned in
+    requirements/responsibilities sections or with mandatory language are
+    required. Unmarked skills remain required to preserve useful behavior for
+    short, informal job descriptions. If a skill appears in both groups,
+    required wins.
+    """
+    all_skills = detect_skills(job_description_text)
+    required_candidates = []
+    preferred_candidates = []
+    unmarked_candidates = []
+    explicit_preference_found = False
+
+    for statement, section_type in _job_skill_statements(job_description_text):
+        statement_skills = detect_skills(statement)
+        if not statement_skills:
+            continue
+
+        normalized_statement = _normalize_skill_text(statement)
+        if _is_optional_requirement(statement) or section_type == "preferred":
+            explicit_preference_found = True
+            preferred_candidates.extend(statement_skills)
+        elif REQUIRED_SKILL_MARKERS.search(normalized_statement) or section_type == "required":
+            required_candidates.extend(statement_skills)
+        else:
+            unmarked_candidates.extend(statement_skills)
+
+    # A practical mention without preference language is treated as required.
+    # This also keeps older, comma-separated sample descriptions meaningful.
+    required_set = set(required_candidates) | set(unmarked_candidates)
+    preferred_set = set(preferred_candidates) - required_set
+    required_skills = [skill for skill in all_skills if skill in required_set]
+    preferred_skills = [skill for skill in all_skills if skill in preferred_set]
+
+    # Defensive fallback for text that the statement parser could not segment.
+    classified = set(required_skills) | set(preferred_skills)
+    required_skills.extend(
+        skill for skill in all_skills if skill not in classified
+    )
+
+    return {
+        "required_skills": required_skills,
+        "preferred_skills": preferred_skills,
+        "all_skills": all_skills,
+        "classification_method": (
+            "explicit_preference_markers"
+            if explicit_preference_found
+            else "unmarked_skills_treated_as_required"
+        ),
+        "disclaimer": (
+            "Preferred skills are shown separately and do not lower the "
+            "required-skill match. Verify ambiguous wording against the "
+            "original posting."
+        ),
+    }
+
+
+def analyze_job_description(job_description_text):
+    return classify_job_skills(job_description_text)["required_skills"]
 
 
 def _experience_years(text):
@@ -1677,9 +1777,14 @@ def calculate_semantic_match_details(resume_text, job_description_text):
         job_description_text,
     )
     resume_skills = detect_skills(resume_text)
-    job_required_skills = detect_skills(job_description_text)
+    job_skill_requirements = classify_job_skills(job_description_text)
+    job_required_skills = job_skill_requirements["required_skills"]
+    job_preferred_skills = job_skill_requirements["preferred_skills"]
     matched_required_skills = [
         skill for skill in job_required_skills if skill in resume_skills
+    ]
+    matched_preferred_skills = [
+        skill for skill in job_preferred_skills if skill in resume_skills
     ]
 
     if job_required_skills:
@@ -1705,6 +1810,9 @@ def calculate_semantic_match_details(resume_text, job_description_text):
         "matched_required_skills": matched_required_skills,
         "matched_required_skill_count": len(matched_required_skills),
         "required_skill_count": len(job_required_skills),
+        "matched_preferred_skills": matched_preferred_skills,
+        "matched_preferred_skill_count": len(matched_preferred_skills),
+        "preferred_skill_count": len(job_preferred_skills),
         "scoring_method": scoring_method,
     }
 
