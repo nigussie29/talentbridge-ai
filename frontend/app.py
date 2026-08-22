@@ -37,6 +37,7 @@ from career_engine import (
     generate_score_interpretation,
     calculate_analysis_confidence,
     generate_evidence_traceability,
+    analyze_requirement_evidence_strength,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -896,6 +897,11 @@ with input_col2:
             match_result.get("job_description_text", ""),
             job_skill_requirements,
         )
+        requirement_evidence_strength = analyze_requirement_evidence_strength(
+            match_result.get("resume_text", ""),
+            match_result.get("job_description_text", ""),
+            job_skill_requirements,
+        )
         application_decision = generate_application_decision(
             job_comparison,
             semantic_match_score,
@@ -1062,6 +1068,27 @@ with input_col2:
                 evidence_traceability["preferred_rows"]
             )
         traceability_panel.caption(evidence_traceability["disclaimer"])
+
+        strength_panel = st.expander(
+            "Requirement Evidence Strength — "
+            f"{requirement_evidence_strength['strong_count']} strong, "
+            f"{requirement_evidence_strength['moderate_count']} moderate, "
+            f"{requirement_evidence_strength['mention_only_count']} mention "
+            "only, "
+            f"{requirement_evidence_strength['missing_count']} missing",
+            expanded=False,
+        )
+        if requirement_evidence_strength["rows"]:
+            strength_panel.table(requirement_evidence_strength["rows"])
+        else:
+            strength_panel.info(
+                "No required skills were detected in the job posting."
+            )
+        strength_panel.write(
+            "**Recommended next step:** "
+            f"{requirement_evidence_strength['next_step']}"
+        )
+        strength_panel.caption(requirement_evidence_strength["disclaimer"])
 
         critical_panel = st.expander(
             "Critical Requirements — "
