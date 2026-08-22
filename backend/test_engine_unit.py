@@ -7,6 +7,7 @@ from career_engine import (
     analyze_requirement_evidence_strength,
     analyze_skill_confidence,
     calculate_analysis_confidence,
+    calculate_evidence_adjusted_requirement_score,
     calculate_improvement_score,
     calculate_proof_based_readiness_score,
     calculate_semantic_match_details,
@@ -31,6 +32,51 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_evidence_adjusted_requirement_score_weights_all_levels(self):
+        strength = analyze_requirement_evidence_strength(
+            (
+                "Built Python pipelines for payroll reporting.\n"
+                "Five years of experience with SQL.\n"
+                "Skills: Power BI."
+            ),
+            "Required skills: Python, SQL, Power BI, and Databricks.",
+        )
+
+        result = calculate_evidence_adjusted_requirement_score(strength)
+
+        self.assertEqual(result["score"], 47.5)
+        self.assertEqual(result["earned_points"], 1.9)
+        self.assertEqual(result["total_requirements"], 4)
+        self.assertEqual(result["status"], "Developing Evidence Coverage")
+
+    def test_evidence_adjusted_requirement_score_rewards_all_strong_evidence(self):
+        result = calculate_evidence_adjusted_requirement_score(
+            {
+                "rows": [
+                    {"Evidence Strength": "Strong Evidence"},
+                    {"Evidence Strength": "Strong Evidence"},
+                ]
+            }
+        )
+
+        self.assertEqual(result["score"], 100.0)
+        self.assertEqual(result["status"], "Strong Evidence Coverage")
+
+    def test_evidence_adjusted_requirement_score_limits_keyword_mentions(self):
+        result = calculate_evidence_adjusted_requirement_score(
+            {"rows": [{"Evidence Strength": "Mention Only"}]}
+        )
+
+        self.assertEqual(result["score"], 25.0)
+        self.assertEqual(result["status"], "Limited Evidence Coverage")
+
+    def test_evidence_adjusted_requirement_score_handles_no_requirements(self):
+        result = calculate_evidence_adjusted_requirement_score({"rows": []})
+
+        self.assertEqual(result["score"], 0.0)
+        self.assertEqual(result["total_requirements"], 0)
+        self.assertEqual(result["status"], "Not Enough Requirements")
+
     def test_requirement_evidence_strength_separates_all_four_levels(self):
         result = analyze_requirement_evidence_strength(
             (

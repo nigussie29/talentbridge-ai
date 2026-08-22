@@ -252,6 +252,13 @@ REQUIREMENT_EVIDENCE_OUTCOME_WORDS = (
     "produced",
 )
 
+REQUIREMENT_EVIDENCE_WEIGHTS = {
+    "Strong Evidence": 1.0,
+    "Moderate Evidence": 0.65,
+    "Mention Only": 0.25,
+    "Missing": 0.0,
+}
+
 
 def _normalize_skill_text(text):
     normalized = str(text or "").casefold()
@@ -1112,6 +1119,91 @@ def analyze_requirement_evidence_strength(
             "Evidence strength evaluates résumé wording only; it does not "
             "verify proficiency, experience duration, or employer endorsement. "
             "It does not change the three existing match scores."
+        ),
+    }
+
+
+def calculate_evidence_adjusted_requirement_score(evidence_strength):
+    """Score required skills by evidence quality, not keyword presence alone."""
+    rows = list(evidence_strength.get("rows", []))
+    total_requirements = len(rows)
+    level_counts = {
+        level: sum(row.get("Evidence Strength") == level for row in rows)
+        for level in REQUIREMENT_EVIDENCE_WEIGHTS
+    }
+    earned_points = sum(
+        REQUIREMENT_EVIDENCE_WEIGHTS.get(
+            row.get("Evidence Strength"),
+            0.0,
+        )
+        for row in rows
+    )
+    score = (
+        round((earned_points / total_requirements) * 100, 2)
+        if total_requirements
+        else 0.0
+    )
+
+    if not total_requirements:
+        status = "Not Enough Requirements"
+        next_step = (
+            "Paste a complete job description so required-skill evidence can "
+            "be scored."
+        )
+    elif score >= 85:
+        status = "Strong Evidence Coverage"
+        next_step = (
+            "Preserve the strongest evidence and prepare to explain each "
+            "example with truthful scope and outcomes."
+        )
+    elif score >= 65:
+        status = "Competitive Evidence Coverage"
+        next_step = (
+            "Address missing requirements, then strengthen mention-only and "
+            "moderate evidence with truthful examples."
+        )
+    elif score >= 40:
+        status = "Developing Evidence Coverage"
+        next_step = (
+            "Prioritize missing requirements and replace skill-list mentions "
+            "with truthful project or work evidence."
+        )
+    else:
+        status = "Limited Evidence Coverage"
+        next_step = (
+            "Build and document truthful evidence for the highest-priority "
+            "requirements before presenting the résumé as a strong match."
+        )
+
+    breakdown = []
+    for level, weight in REQUIREMENT_EVIDENCE_WEIGHTS.items():
+        count = level_counts[level]
+        breakdown.append(
+            {
+                "Evidence Level": level,
+                "Weight": f"{weight * 100:.0f}%",
+                "Requirements": count,
+                "Earned Points": round(count * weight, 2),
+            }
+        )
+
+    return {
+        "score": score,
+        "status": status,
+        "total_requirements": total_requirements,
+        "earned_points": round(earned_points, 2),
+        "breakdown": breakdown,
+        "next_step": next_step,
+        "methodology": (
+            "Strong Evidence = 100%, Moderate Evidence = 65%, Mention Only = "
+            "25%, and Missing = 0%. The score is the average weight across "
+            "required skills only."
+        ),
+        "disclaimer": (
+            "This separate evidence-quality score does not change Job "
+            "Description Match, Semantic Match, or Target Career Match. It "
+            "evaluates résumé wording, not verified proficiency or an employer "
+            "decision."
         ),
     }
 
