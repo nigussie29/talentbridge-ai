@@ -4,6 +4,7 @@ from career_engine import (
     analyze_career_profile,
     analyze_job_description,
     analyze_resume_text,
+    analyze_requirement_evidence_strength,
     analyze_skill_confidence,
     calculate_analysis_confidence,
     calculate_improvement_score,
@@ -30,6 +31,69 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_requirement_evidence_strength_separates_all_four_levels(self):
+        result = analyze_requirement_evidence_strength(
+            (
+                "Built Python pipelines for payroll reporting.\n"
+                "Five years of experience with SQL.\n"
+                "Skills: Power BI."
+            ),
+            "Required skills: Python, SQL, Power BI, and Databricks.",
+        )
+
+        rows = {row["Requirement"]: row for row in result["rows"]}
+        self.assertEqual(
+            rows["Python"]["Evidence Strength"],
+            "Strong Evidence",
+        )
+        self.assertEqual(
+            rows["SQL"]["Evidence Strength"],
+            "Moderate Evidence",
+        )
+        self.assertEqual(
+            rows["Power BI"]["Evidence Strength"],
+            "Mention Only",
+        )
+        self.assertEqual(
+            rows["Databricks"]["Evidence Strength"],
+            "Missing",
+        )
+        self.assertEqual(result["strong_count"], 1)
+        self.assertEqual(result["moderate_count"], 1)
+        self.assertEqual(result["mention_only_count"], 1)
+        self.assertEqual(result["missing_count"], 1)
+
+    def test_requirement_evidence_strength_uses_exact_traceable_excerpt(self):
+        result = analyze_requirement_evidence_strength(
+            "Skills: SQL.\nUsed SQL to reconcile 50,000 records.",
+            "SQL is required.",
+        )
+
+        row = result["rows"][0]
+        self.assertEqual(row["Evidence Strength"], "Strong Evidence")
+        self.assertEqual(
+            row["Résumé Evidence"],
+            "Used SQL to reconcile 50,000 records.",
+        )
+
+    def test_requirement_evidence_strength_excludes_preferred_skills(self):
+        result = analyze_requirement_evidence_strength(
+            "Built Python data tools and used Kubernetes.",
+            "Python is required. Kubernetes is preferred.",
+        )
+
+        self.assertEqual(
+            [row["Requirement"] for row in result["rows"]],
+            ["Python"],
+        )
+
+    def test_requirement_evidence_strength_handles_no_requirements(self):
+        result = analyze_requirement_evidence_strength("", "")
+
+        self.assertEqual(result["rows"], [])
+        self.assertEqual(result["missing_count"], 0)
+        self.assertIn("complete job description", result["next_step"])
+
     def test_evidence_traceability_copies_exact_source_excerpts(self):
         result = generate_evidence_traceability(
             (

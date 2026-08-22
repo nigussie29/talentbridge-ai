@@ -166,6 +166,93 @@ TESTING_CONTEXT_SKILLS = {
 }
 
 
+REQUIREMENT_EVIDENCE_ACTION_WORDS = (
+    "built",
+    "created",
+    "developed",
+    "implemented",
+    "designed",
+    "used",
+    "applied",
+    "analyzed",
+    "analysed",
+    "cleaned",
+    "automated",
+    "deployed",
+    "managed",
+    "wrote",
+    "generated",
+    "presented",
+    "transformed",
+    "loaded",
+    "extracted",
+    "documented",
+    "tested",
+    "validated",
+    "reconciled",
+    "optimized",
+    "improved",
+)
+
+REQUIREMENT_EVIDENCE_CONTEXT_WORDS = (
+    "experience",
+    "worked with",
+    "hands on",
+    "project",
+    "projects",
+    "portfolio",
+    "support",
+    "dashboard",
+    "dashboards",
+    "report",
+    "reports",
+    "pipeline",
+    "pipelines",
+    "model",
+    "models",
+    "query",
+    "queries",
+    "analysis",
+    "test",
+    "testing",
+    "application",
+    "applications",
+    "system",
+    "systems",
+    "dataset",
+    "datasets",
+    "data",
+    "process",
+    "workflow",
+    "workflows",
+    "validation",
+    "reconciliation",
+    "stakeholder",
+    "client",
+    "clients",
+    "customer",
+    "customers",
+    "team",
+    "teams",
+)
+
+REQUIREMENT_EVIDENCE_OUTCOME_WORDS = (
+    "result",
+    "resulting",
+    "outcome",
+    "impact",
+    "improved",
+    "reduced",
+    "increased",
+    "saved",
+    "accuracy",
+    "efficiency",
+    "performance",
+    "delivered",
+    "produced",
+)
+
+
 def _normalize_skill_text(text):
     normalized = str(text or "").casefold()
     normalized = re.sub(r"[\u2010-\u2015/_-]+", " ", normalized)
@@ -907,6 +994,124 @@ def generate_evidence_traceability(
             "Excerpts are copied from the pasted résumé and job posting. A "
             "keyword excerpt shows textual support, not verified proficiency, "
             "experience duration, or employer endorsement."
+        ),
+    }
+
+
+def _requirement_evidence_level(resume_evidence):
+    """Classify one exact résumé excerpt without inferring missing facts."""
+    if not resume_evidence:
+        return (
+            "Missing",
+            "No supporting résumé excerpt was detected for this requirement.",
+        )
+
+    normalized_evidence = _normalize_skill_text(resume_evidence)
+    has_action = any(
+        _contains_skill_keyword(normalized_evidence, word)
+        for word in REQUIREMENT_EVIDENCE_ACTION_WORDS
+    )
+    has_context = any(
+        _contains_skill_keyword(normalized_evidence, word)
+        for word in REQUIREMENT_EVIDENCE_CONTEXT_WORDS
+    )
+    has_outcome = any(
+        _contains_skill_keyword(normalized_evidence, word)
+        for word in REQUIREMENT_EVIDENCE_OUTCOME_WORDS
+    ) or re.search(r"\b\d+(?:[.,]\d+)?%?\b", normalized_evidence) is not None
+
+    if has_action and (has_context or has_outcome):
+        return (
+            "Strong Evidence",
+            "The excerpt shows practical use through an action and a concrete "
+            "task, deliverable, context, or outcome.",
+        )
+    if has_action or has_context:
+        return (
+            "Moderate Evidence",
+            "The excerpt adds action or experience context, but practical "
+            "scope and results remain limited.",
+        )
+    return (
+        "Mention Only",
+        "The skill is listed or named without an action, project, experience "
+        "example, or outcome.",
+    )
+
+
+def analyze_requirement_evidence_strength(
+    resume_text,
+    job_description_text,
+    job_skill_requirements=None,
+):
+    """Evaluate evidence quality for required skills without changing scores."""
+    job_skill_requirements = job_skill_requirements or classify_job_skills(
+        job_description_text
+    )
+    rows = []
+
+    for skill in job_skill_requirements.get("required_skills", []):
+        resume_evidence = _resume_skill_evidence(resume_text, skill)
+        strength, reason = _requirement_evidence_level(resume_evidence)
+        rows.append(
+            {
+                "Requirement": skill,
+                "Evidence Strength": strength,
+                "Résumé Evidence": (
+                    resume_evidence
+                    or "No supporting résumé excerpt detected."
+                ),
+                "Why": reason,
+            }
+        )
+
+    counts = {
+        level: sum(row["Evidence Strength"] == level for row in rows)
+        for level in (
+            "Strong Evidence",
+            "Moderate Evidence",
+            "Mention Only",
+            "Missing",
+        )
+    }
+
+    if counts["Missing"]:
+        next_step = (
+            "Address missing requirements first. Add them to the résumé only "
+            "after you have truthful evidence you can explain and prove."
+        )
+    elif counts["Mention Only"]:
+        next_step = (
+            "Replace skill-list-only mentions with truthful examples of how "
+            "you used each skill."
+        )
+    elif counts["Moderate Evidence"]:
+        next_step = (
+            "Strengthen moderate evidence with truthful scope, ownership, "
+            "deliverables, or measurable outcomes."
+        )
+    elif rows:
+        next_step = (
+            "Preserve the action-based evidence and prepare to explain each "
+            "example in an interview."
+        )
+    else:
+        next_step = (
+            "Paste a complete job description so required skills can be "
+            "evaluated."
+        )
+
+    return {
+        "rows": rows,
+        "strong_count": counts["Strong Evidence"],
+        "moderate_count": counts["Moderate Evidence"],
+        "mention_only_count": counts["Mention Only"],
+        "missing_count": counts["Missing"],
+        "next_step": next_step,
+        "disclaimer": (
+            "Evidence strength evaluates résumé wording only; it does not "
+            "verify proficiency, experience duration, or employer endorsement. "
+            "It does not change the three existing match scores."
         ),
     }
 

@@ -182,6 +182,26 @@ separate and use **Present** or **Opportunity**, so an optional qualification is
 never presented as a mandatory gap. Excerpts demonstrate textual support only;
 they do not verify proficiency, experience duration, or employer endorsement.
 
+### Requirement Evidence Strength
+
+For every required job skill, TalentBridge AI evaluates the quality of the
+exact résumé excerpt identified by Evidence Traceability. It uses four cautious
+levels:
+
+* **Strong Evidence** — the excerpt combines practical action with a concrete
+  task, deliverable, context, or outcome;
+* **Moderate Evidence** — the excerpt includes action or experience context,
+  but practical scope or results remain limited;
+* **Mention Only** — the skill is listed without a supporting action, project,
+  experience example, or outcome; and
+* **Missing** — no supporting résumé excerpt was detected.
+
+Preferred skills remain outside this required-evidence assessment. The panel
+provides a truthful next step and does not alter Job Description Match,
+Semantic Match, or Target Career Match. Evidence strength evaluates résumé
+wording only and does not verify proficiency, experience duration, or employer
+endorsement.
+
 ### Input Quality Guardrails
 
 Before running an analysis, TalentBridge AI checks the résumé and job
