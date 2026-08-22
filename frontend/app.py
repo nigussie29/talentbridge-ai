@@ -34,6 +34,7 @@ from career_engine import (
     generate_interview_preparation_plan,
     generate_match_action_summary,
     generate_application_decision,
+    generate_score_interpretation,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -947,6 +948,19 @@ with input_col2:
             "posting. Target Career Match updates automatically when the sidebar "
             "career changes."
         )
+
+        score_interpretation = generate_score_interpretation(
+            job_comparison,
+            semantic_match_details,
+            target_career_match,
+        )
+        score_panel = st.expander("Why These Scores Differ")
+        score_panel.info(score_interpretation["summary"])
+        score_panel.table(score_interpretation["scores"])
+        score_panel.write(
+            f"**Recommended next step:** {score_interpretation['next_step']}"
+        )
+        score_panel.caption(score_interpretation["disclaimer"])
 
         preferred_matched_count = len(preferred_comparison["matched_skills"])
         preferred_gap_count = len(preferred_comparison["missing_skills"])
