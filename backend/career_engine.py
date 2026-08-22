@@ -958,6 +958,86 @@ def prioritize_missing_skills(missing_skills, target_career=None):
     return priority_report
 
 
+def generate_match_action_summary(job_comparison, target_career=None):
+    """Turn match evidence into a concise, non-hiring action summary."""
+    matched_skills = job_comparison.get("matched_skills", [])
+    missing_skills = job_comparison.get("missing_skills", [])
+    match_score = float(job_comparison.get("match_score", 0) or 0)
+    requirement_count = len(matched_skills) + len(missing_skills)
+
+    if requirement_count == 0:
+        return {
+            "fit_level": "Insufficient Job Information",
+            "message_type": "warning",
+            "headline": "No recognizable job requirements were detected.",
+            "top_strengths": [],
+            "priority_gaps": [],
+            "next_action": (
+                "Paste a detailed job description containing responsibilities "
+                "and required skills, then run the comparison again."
+            ),
+            "disclaimer": "This summary is guidance, not a hiring decision.",
+        }
+
+    if match_score >= 80:
+        fit_level = "Strong Skill Match"
+        message_type = "success"
+    elif match_score >= 65:
+        fit_level = "Competitive Skill Match"
+        message_type = "info"
+    elif match_score >= 50:
+        fit_level = "Developing Skill Match"
+        message_type = "warning"
+    else:
+        fit_level = "Low Skill Match"
+        message_type = "warning"
+
+    priority_rank = {
+        "High Priority": 0,
+        "Medium Priority": 1,
+        "Low Priority": 2,
+    }
+    priority_report = prioritize_missing_skills(
+        missing_skills,
+        target_career=target_career,
+    )
+    ranked_gaps = sorted(
+        enumerate(priority_report),
+        key=lambda item: (
+            priority_rank.get(item[1]["Priority Level"], 3),
+            item[0],
+        ),
+    )
+    priority_gaps = [
+        item["Missing Skill"] for _, item in ranked_gaps[:3]
+    ]
+
+    if priority_gaps:
+        gap_text = ", ".join(priority_gaps)
+        next_action = (
+            f"Focus first on {gap_text}. Add a skill to the resume only after "
+            "you can support it with truthful evidence."
+        )
+    else:
+        next_action = (
+            "Prepare evidence-based interview stories for the strongest matched "
+            "skills and verify that every claim is accurate."
+        )
+
+    return {
+        "fit_level": fit_level,
+        "message_type": message_type,
+        "headline": (
+            f"{fit_level}: matched {len(matched_skills)} of "
+            f"{requirement_count} detected job requirements."
+        ),
+        "top_strengths": matched_skills[:3],
+        "priority_gaps": priority_gaps,
+        "next_action": next_action,
+        "disclaimer": "This summary is guidance, not a hiring decision.",
+    }
+
+
 SEMANTIC_CONTEXT_WEIGHT = 0.35
 SEMANTIC_SKILL_WEIGHT = 0.65
 
