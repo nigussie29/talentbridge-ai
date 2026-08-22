@@ -529,6 +529,155 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertEqual(result["message_type"], "success")
         self.assertEqual(result["critical_support_score"], 100.0)
 
+    def test_application_decision_caps_developing_evidence_at_consider(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            semantic_match_score=72.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+            evidence_adjusted_score={
+                "score": 50.71,
+                "status": "Developing Evidence Coverage",
+                "total_requirements": 7,
+            },
+            analysis_confidence={
+                "confidence_level": "Moderate",
+                "confidence_score": 68.0,
+            },
+        )
+
+        self.assertEqual(result["original_decision"], "Strong Match")
+        self.assertEqual(result["decision"], "Consider Applying")
+        self.assertTrue(result["guardrail_applied"])
+        self.assertEqual(result["maximum_recommendation"], "Consider Applying")
+
+    def test_application_decision_caps_limited_evidence_at_improve(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            semantic_match_score=72.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+            evidence_adjusted_score={
+                "score": 35.0,
+                "status": "Limited Evidence Coverage",
+                "total_requirements": 4,
+            },
+            analysis_confidence={
+                "confidence_level": "High",
+                "confidence_score": 88.0,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Improve Before Applying")
+        self.assertEqual(result["message_type"], "warning")
+        self.assertTrue(result["guardrail_applied"])
+
+    def test_application_decision_low_confidence_prevents_strong_match(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            semantic_match_score=72.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+            evidence_adjusted_score={
+                "score": 100.0,
+                "status": "Strong Evidence Coverage",
+                "total_requirements": 4,
+            },
+            analysis_confidence={
+                "confidence_level": "Low",
+                "confidence_score": 43.96,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Consider Applying")
+        self.assertTrue(result["guardrail_applied"])
+        self.assertIn(
+            "Analysis Confidence is Low",
+            " ".join(result["guardrail_reasons"]),
+        )
+
+    def test_application_decision_keeps_strong_match_with_strong_evidence(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            semantic_match_score=72.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+            evidence_adjusted_score={
+                "score": 92.0,
+                "status": "Strong Evidence Coverage",
+                "total_requirements": 4,
+            },
+            analysis_confidence={
+                "confidence_level": "High",
+                "confidence_score": 90.0,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Strong Match")
+        self.assertFalse(result["guardrail_applied"])
+        self.assertEqual(result["guardrail_status"], "No Adjustment Needed")
+
+    def test_application_decision_guardrail_never_upgrades_a_decision(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python"],
+                "missing_skills": ["SQL", "Cloud"],
+                "match_score": 33.33,
+            },
+            semantic_match_score=20.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+            evidence_adjusted_score={
+                "score": 100.0,
+                "status": "Strong Evidence Coverage",
+                "total_requirements": 3,
+            },
+            analysis_confidence={
+                "confidence_level": "High",
+                "confidence_score": 90.0,
+            },
+        )
+
+        self.assertEqual(result["original_decision"], "Improve Before Applying")
+        self.assertEqual(result["decision"], "Improve Before Applying")
+        self.assertFalse(result["guardrail_applied"])
+
     def test_application_decision_respects_missing_core_requirement(self):
         result = generate_application_decision(
             {
