@@ -36,6 +36,7 @@ from career_engine import (
     generate_application_decision,
     generate_score_interpretation,
     calculate_analysis_confidence,
+    generate_evidence_traceability,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -803,6 +804,11 @@ with input_col2:
                 resume_text,
                 job_description_text,
             )
+            evidence_traceability = generate_evidence_traceability(
+                resume_text,
+                job_description_text,
+                job_skill_requirements,
+            )
             application_decision = generate_application_decision(
                 job_comparison,
                 semantic_match_score,
@@ -833,6 +839,7 @@ with input_col2:
                 "semantic_match_score": semantic_match_score,
                 "semantic_match_details": semantic_match_details,
                 "critical_requirements": critical_requirements,
+                "evidence_traceability": evidence_traceability,
                 "application_decision": application_decision,
                 "analysis_confidence": analysis_confidence,
                 "mode_report_text": mode_report_text,
@@ -884,6 +891,11 @@ with input_col2:
                 match_result.get("resume_text", ""),
                 match_result.get("job_description_text", ""),
             )
+        evidence_traceability = generate_evidence_traceability(
+            match_result.get("resume_text", ""),
+            match_result.get("job_description_text", ""),
+            job_skill_requirements,
+        )
         application_decision = generate_application_decision(
             job_comparison,
             semantic_match_score,
@@ -1027,6 +1039,29 @@ with input_col2:
                 "lower the required-skill match."
             )
         classification_panel.caption(job_skill_requirements["disclaimer"])
+
+        traceability_panel = st.expander(
+            "Evidence Traceability — "
+            f"{evidence_traceability['matched_count']} with evidence, "
+            f"{evidence_traceability['missing_count']} without evidence",
+            expanded=False,
+        )
+        traceability_panel.markdown("#### Required-skill evidence")
+        if evidence_traceability["required_rows"]:
+            traceability_panel.table(
+                evidence_traceability["required_rows"]
+            )
+        else:
+            traceability_panel.info(
+                "No required skills were detected in the job posting."
+            )
+
+        if evidence_traceability["preferred_rows"]:
+            traceability_panel.markdown("#### Preferred-skill evidence")
+            traceability_panel.table(
+                evidence_traceability["preferred_rows"]
+            )
+        traceability_panel.caption(evidence_traceability["disclaimer"])
 
         critical_panel = st.expander(
             "Critical Requirements — "
