@@ -153,6 +153,21 @@ skills.
 
 Users can paste a job description. The app detects required job skills and compares them with the resume skills.
 
+### Required vs. Preferred Skills
+
+TalentBridge AI separates mandatory job skills from explicitly optional or
+preferred qualifications. Phrases such as **preferred**, **nice to have**,
+**optional**, **bonus**, and **a plus** place skills in a separate preferred
+group. Required language and requirements/responsibilities sections remain in
+the required group; when the same skill appears in both groups, required wins.
+
+Only required skills affect the Job Description Match, semantic required-skill
+alignment, readiness projection, application decision, and priority gaps.
+Preferred evidence is displayed separately as present skills or opportunities,
+so a missing bonus skill cannot unfairly reduce the candidate's match score.
+Short job descriptions without explicit markers keep their prior behavior by
+treating detected skills as required.
+
 ### Input Quality Guardrails
 
 Before running an analysis, TalentBridge AI checks the résumé and job
