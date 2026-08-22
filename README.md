@@ -168,6 +168,20 @@ so a missing bonus skill cannot unfairly reduce the candidate's match score.
 Short job descriptions without explicit markers keep their prior behavior by
 treating detected skills as required.
 
+### Evidence Traceability
+
+The results page traces every detected required and preferred job skill back to
+the exact source wording used by the analyzer. For each skill, the traceability
+table shows its classification, whether résumé evidence was found, the strongest
+supporting résumé excerpt, and the relevant job-posting excerpt. When no résumé
+support exists, the app explicitly reports **No supporting résumé excerpt
+detected** instead of generating or assuming evidence.
+
+Required skills use **Matched** or **Missing** status. Preferred skills remain
+separate and use **Present** or **Opportunity**, so an optional qualification is
+never presented as a mandatory gap. Excerpts demonstrate textual support only;
+they do not verify proficiency, experience duration, or employer endorsement.
+
 ### Input Quality Guardrails
 
 Before running an analysis, TalentBridge AI checks the résumé and job

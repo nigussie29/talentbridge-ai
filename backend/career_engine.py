@@ -732,6 +732,185 @@ def analyze_job_description(job_description_text):
     return classify_job_skills(job_description_text)["required_skills"]
 
 
+def _source_evidence_statements(text):
+    """Split source text into readable excerpts while preserving its wording."""
+    statements = []
+    for raw_line in re.split(r"[\r\n]+", str(text or "")):
+        line = raw_line.strip(" \t-*•")
+        if not line:
+            continue
+        for match in re.finditer(r"[^.!?;]+(?:[.!?;]+|$)", line):
+            statement = match.group(0).strip(" \t-*•")
+            if statement:
+                statements.append(statement)
+    return statements
+
+
+def _evidence_excerpt(statement, maximum_length=320):
+    statement = re.sub(r"\s+", " ", str(statement or "")).strip()
+    if len(statement) <= maximum_length:
+        return statement
+    return statement[: maximum_length - 1].rstrip() + "…"
+
+
+def _resume_skill_evidence(resume_text, skill):
+    action_words = (
+        "built",
+        "created",
+        "developed",
+        "implemented",
+        "designed",
+        "used",
+        "applied",
+        "analyzed",
+        "cleaned",
+        "automated",
+        "deployed",
+        "managed",
+        "wrote",
+        "generated",
+        "presented",
+        "transformed",
+        "loaded",
+        "extracted",
+        "documented",
+        "tested",
+        "validated",
+    )
+    experience_words = (
+        "experience",
+        "worked with",
+        "hands on",
+        "project",
+        "portfolio",
+        "support",
+    )
+
+    candidates = []
+    for index, statement in enumerate(_source_evidence_statements(resume_text)):
+        if skill not in detect_skills(statement):
+            continue
+        normalized_statement = _normalize_skill_text(statement)
+        evidence_strength = 0
+        if any(
+            _contains_skill_keyword(normalized_statement, word)
+            for word in action_words
+        ):
+            evidence_strength = 2
+        elif any(word in normalized_statement for word in experience_words):
+            evidence_strength = 1
+        candidates.append(
+            (evidence_strength, len(statement), -index, statement)
+        )
+
+    if not candidates:
+        return None
+    strongest_statement = max(candidates)[-1]
+    return _evidence_excerpt(strongest_statement)
+
+
+def _job_skill_evidence(job_description_text, skill, requirement_type):
+    candidates = []
+    for index, (statement, section_type) in enumerate(
+        _job_skill_statements(job_description_text)
+    ):
+        if skill not in detect_skills(statement):
+            continue
+
+        normalized_statement = _normalize_skill_text(statement)
+        is_preferred = (
+            _is_optional_requirement(statement)
+            or section_type == "preferred"
+        )
+        is_explicitly_required = (
+            section_type == "required"
+            or REQUIRED_SKILL_MARKERS.search(normalized_statement) is not None
+        )
+        if requirement_type == "Preferred":
+            classification_strength = 2 if is_preferred else 0
+        elif is_preferred:
+            classification_strength = 0
+        elif is_explicitly_required:
+            classification_strength = 2
+        else:
+            classification_strength = 1
+
+        candidates.append(
+            (classification_strength, len(statement), -index, statement)
+        )
+
+    if not candidates:
+        return None
+    strongest_statement = max(candidates)[-1]
+    return _evidence_excerpt(strongest_statement)
+
+
+def generate_evidence_traceability(
+    resume_text,
+    job_description_text,
+    job_skill_requirements=None,
+):
+    """Trace every detected job skill to exact résumé and posting excerpts."""
+    job_skill_requirements = job_skill_requirements or classify_job_skills(
+        job_description_text
+    )
+    rows = []
+
+    for requirement_type, skills in (
+        ("Required", job_skill_requirements.get("required_skills", [])),
+        ("Preferred", job_skill_requirements.get("preferred_skills", [])),
+    ):
+        for skill in skills:
+            resume_evidence = _resume_skill_evidence(resume_text, skill)
+            job_evidence = _job_skill_evidence(
+                job_description_text,
+                skill,
+                requirement_type,
+            )
+            rows.append(
+                {
+                    "Requirement": skill,
+                    "Type": requirement_type,
+                    "Status": (
+                        "Matched"
+                        if resume_evidence and requirement_type == "Required"
+                        else "Present"
+                        if resume_evidence
+                        else "Missing"
+                        if requirement_type == "Required"
+                        else "Opportunity"
+                    ),
+                    "Résumé Evidence": (
+                        resume_evidence
+                        or "No supporting résumé excerpt detected."
+                    ),
+                    "Job Evidence": (
+                        job_evidence
+                        or "No isolated job-posting excerpt was found."
+                    ),
+                }
+            )
+
+    required_rows = [row for row in rows if row["Type"] == "Required"]
+    preferred_rows = [row for row in rows if row["Type"] == "Preferred"]
+    matched_count = sum(
+        row["Status"] in {"Matched", "Present"} for row in rows
+    )
+
+    return {
+        "rows": rows,
+        "required_rows": required_rows,
+        "preferred_rows": preferred_rows,
+        "matched_count": matched_count,
+        "missing_count": len(rows) - matched_count,
+        "disclaimer": (
+            "Excerpts are copied from the pasted résumé and job posting. A "
+            "keyword excerpt shows textual support, not verified proficiency, "
+            "experience duration, or employer endorsement."
+        ),
+    }
+
+
 def _experience_years(text):
     return [
         int(match.group("years"))

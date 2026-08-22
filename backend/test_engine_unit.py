@@ -15,6 +15,7 @@ from career_engine import (
     compare_resume_to_job,
     evaluate_critical_requirements,
     generate_application_decision,
+    generate_evidence_traceability,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
     generate_match_action_summary,
@@ -29,6 +30,76 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_evidence_traceability_copies_exact_source_excerpts(self):
+        result = generate_evidence_traceability(
+            (
+                "Skills: Python and SQL.\n"
+                "Built Python pipelines for payroll reporting.\n"
+                "Created PostgreSQL validation queries for finance data."
+            ),
+            "Required skills: Python, SQL, and Databricks.",
+        )
+
+        rows = {row["Requirement"]: row for row in result["required_rows"]}
+        self.assertEqual(
+            rows["Python"]["Résumé Evidence"],
+            "Built Python pipelines for payroll reporting.",
+        )
+        self.assertEqual(
+            rows["SQL"]["Résumé Evidence"],
+            "Created PostgreSQL validation queries for finance data.",
+        )
+        self.assertEqual(
+            rows["SQL"]["Job Evidence"],
+            "Required skills: Python, SQL, and Databricks.",
+        )
+        self.assertEqual(rows["Python"]["Status"], "Matched")
+
+    def test_evidence_traceability_never_invents_missing_resume_proof(self):
+        result = generate_evidence_traceability(
+            "Built Python reporting tools.",
+            "Python and Databricks are required.",
+        )
+
+        rows = {row["Requirement"]: row for row in result["required_rows"]}
+        self.assertEqual(rows["Databricks"]["Status"], "Missing")
+        self.assertEqual(
+            rows["Databricks"]["Résumé Evidence"],
+            "No supporting résumé excerpt detected.",
+        )
+        self.assertIn("Databricks", rows["Databricks"]["Job Evidence"])
+
+    def test_evidence_traceability_keeps_preferred_skills_separate(self):
+        result = generate_evidence_traceability(
+            "Created Power BI dashboards for finance leaders.",
+            (
+                "Python and SQL are required. "
+                "Power BI and Kubernetes are preferred."
+            ),
+        )
+
+        preferred_rows = {
+            row["Requirement"]: row for row in result["preferred_rows"]
+        }
+        self.assertEqual(preferred_rows["Power BI"]["Status"], "Present")
+        self.assertEqual(
+            preferred_rows["Kubernetes"]["Status"],
+            "Opportunity",
+        )
+        self.assertEqual(len(result["required_rows"]), 2)
+        self.assertEqual(len(result["preferred_rows"]), 2)
+
+    def test_evidence_traceability_supports_indirect_skill_variants(self):
+        result = generate_evidence_traceability(
+            "Developed PostgreSQL reconciliation queries.",
+            "Advanced SQL is required for data validation.",
+        )
+
+        sql_row = result["required_rows"][0]
+        self.assertEqual(sql_row["Requirement"], "SQL")
+        self.assertIn("PostgreSQL", sql_row["Résumé Evidence"])
+        self.assertEqual(sql_row["Status"], "Matched")
+
     def test_analysis_confidence_is_low_for_brief_perfect_match(self):
         result = calculate_analysis_confidence(
             {
