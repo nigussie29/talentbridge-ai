@@ -12,6 +12,7 @@ from career_engine import (
     calculate_target_career_match,
     compare_resume_to_job,
     evaluate_critical_requirements,
+    generate_application_decision,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
     generate_match_action_summary,
@@ -25,6 +26,118 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_application_decision_reports_strong_supported_match(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            semantic_match_score=72.0,
+            critical_requirements={
+                "requirements": [
+                    {
+                        "category": "Experience",
+                        "requirement": "5+ years of experience",
+                        "status": "Met",
+                    },
+                    {
+                        "category": "Technology",
+                        "requirement": "Python",
+                        "status": "Met",
+                    },
+                ],
+                "met_count": 2,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Strong Match")
+        self.assertEqual(result["message_type"], "success")
+        self.assertEqual(result["critical_support_score"], 100.0)
+
+    def test_application_decision_respects_missing_core_requirement(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Cloud", "Docker"],
+                "missing_skills": ["Databricks"],
+                "match_score": 80.0,
+            },
+            semantic_match_score=70.0,
+            critical_requirements={
+                "requirements": [
+                    {
+                        "category": "Education",
+                        "requirement": "Bachelor's degree",
+                        "status": "Missing",
+                    },
+                    {
+                        "category": "Technology",
+                        "requirement": "Python",
+                        "status": "Met",
+                    },
+                ],
+                "met_count": 1,
+                "unclear_count": 0,
+                "missing_count": 1,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Improve Before Applying")
+        self.assertIn("Bachelor's degree", result["blocking_requirements"])
+        self.assertIn("truthfully address", result["next_action"])
+
+    def test_application_decision_handles_competitive_match_with_gaps(self):
+        result = generate_application_decision(
+            {
+                "matched_skills": ["Python", "SQL", "Power BI"],
+                "missing_skills": ["Cloud", "Docker"],
+                "match_score": 60.0,
+            },
+            semantic_match_score=50.0,
+            critical_requirements={
+                "requirements": [
+                    {
+                        "category": "Technology",
+                        "requirement": "Python",
+                        "status": "Met",
+                    },
+                    {
+                        "category": "Technology",
+                        "requirement": "SQL",
+                        "status": "Met",
+                    },
+                    {
+                        "category": "Technology",
+                        "requirement": "Cloud",
+                        "status": "Missing",
+                    },
+                ],
+                "met_count": 2,
+                "unclear_count": 0,
+                "missing_count": 1,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Consider Applying")
+        self.assertEqual(result["message_type"], "info")
+
+    def test_application_decision_requires_detected_job_requirements(self):
+        result = generate_application_decision(
+            {"matched_skills": [], "missing_skills": [], "match_score": 0.0},
+            semantic_match_score=0.0,
+            critical_requirements={
+                "requirements": [],
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+        )
+
+        self.assertEqual(result["decision"], "Insufficient Information")
+        self.assertIn("complete responsibilities", result["next_action"])
+
     def test_critical_requirements_separate_met_and_missing_evidence(self):
         result = evaluate_critical_requirements(
             (

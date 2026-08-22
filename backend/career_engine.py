@@ -1487,6 +1487,148 @@ def generate_match_action_summary(job_comparison, target_career=None):
     }
 
 
+def generate_application_decision(
+    job_comparison,
+    semantic_match_score,
+    critical_requirements,
+):
+    """Create a cautious application recommendation from existing evidence."""
+    matched_skills = job_comparison.get("matched_skills", [])
+    missing_skills = job_comparison.get("missing_skills", [])
+    skill_match_score = float(job_comparison.get("match_score", 0) or 0)
+    semantic_match_score = float(semantic_match_score or 0)
+    requirement_count = len(matched_skills) + len(missing_skills)
+
+    critical_requirements = critical_requirements or {}
+    critical_items = critical_requirements.get("requirements", [])
+    met_count = int(critical_requirements.get("met_count", 0) or 0)
+    unclear_count = int(critical_requirements.get("unclear_count", 0) or 0)
+    missing_count = int(critical_requirements.get("missing_count", 0) or 0)
+    critical_count = met_count + unclear_count + missing_count
+    critical_support_score = None
+    if critical_count:
+        critical_support_score = round(
+            ((met_count + (0.5 * unclear_count)) / critical_count) * 100,
+            2,
+        )
+
+    blocking_categories = {
+        "Seniority",
+        "Experience",
+        "Education",
+        "Certification",
+    }
+    blocking_requirements = [
+        item["requirement"]
+        for item in critical_items
+        if item.get("status") == "Missing"
+        and item.get("category") in blocking_categories
+    ]
+
+    reasons = []
+    if requirement_count:
+        reasons.append(
+            f"Skill evidence: matched {len(matched_skills)} of "
+            f"{requirement_count} detected job requirements "
+            f"({round(skill_match_score, 2)}%)."
+        )
+    reasons.append(
+        f"Context alignment: semantic match is "
+        f"{round(semantic_match_score, 2)}%."
+    )
+    if critical_count:
+        reasons.append(
+            "Critical evidence: "
+            f"{met_count} met, {unclear_count} unclear, {missing_count} missing."
+        )
+
+    if requirement_count == 0:
+        decision = "Insufficient Information"
+        message_type = "warning"
+        headline = "More job information is needed before making a recommendation."
+        next_action = (
+            "Paste the complete responsibilities and required qualifications, "
+            "then run the analysis again."
+        )
+    elif (
+        blocking_requirements
+        or skill_match_score < 50
+        or (
+            critical_support_score is not None
+            and critical_support_score < 50
+        )
+        or (skill_match_score < 65 and semantic_match_score < 30)
+    ):
+        decision = "Improve Before Applying"
+        message_type = "warning"
+        headline = (
+            "Important evidence gaps should be addressed before treating this "
+            "as a strong match."
+        )
+        if blocking_requirements:
+            next_action = (
+                "Verify or truthfully address: "
+                + ", ".join(blocking_requirements[:3])
+                + ". Do not claim evidence that the résumé cannot support."
+            )
+        elif missing_skills:
+            next_action = (
+                "Start with the highest-priority missing skills: "
+                + ", ".join(missing_skills[:3])
+                + ". Add them only after you can prove them truthfully."
+            )
+        else:
+            next_action = (
+                "Strengthen the résumé with truthful evidence that directly "
+                "matches the responsibilities in the posting."
+            )
+    elif (
+        skill_match_score >= 80
+        and semantic_match_score >= 60
+        and missing_count == 0
+        and unclear_count <= 1
+    ):
+        decision = "Strong Match"
+        message_type = "success"
+        headline = (
+            "The available résumé evidence strongly supports this job match."
+        )
+        next_action = (
+            "Tailor the résumé to the posting and prepare evidence-based "
+            "interview examples for the strongest requirements."
+        )
+    else:
+        decision = "Consider Applying"
+        message_type = "info"
+        headline = (
+            "The role shows useful alignment, with gaps that need review."
+        )
+        if unclear_count or missing_count:
+            next_action = (
+                "Review every unclear or missing critical requirement, then "
+                "tailor the résumé using only evidence you can explain and prove."
+            )
+        else:
+            next_action = (
+                "Tailor the résumé to the posting and prepare truthful examples "
+                "for the matched skills."
+            )
+
+    return {
+        "decision": decision,
+        "message_type": message_type,
+        "headline": headline,
+        "reasons": reasons,
+        "next_action": next_action,
+        "critical_support_score": critical_support_score,
+        "blocking_requirements": blocking_requirements,
+        "disclaimer": (
+            "This is evidence-based guidance, not an employer decision, "
+            "eligibility ruling, or guarantee of an interview."
+        ),
+    }
+
+
 SEMANTIC_CONTEXT_WEIGHT = 0.35
 SEMANTIC_SKILL_WEIGHT = 0.65
 

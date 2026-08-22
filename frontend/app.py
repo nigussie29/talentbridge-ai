@@ -33,6 +33,7 @@ from career_engine import (
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
     generate_match_action_summary,
+    generate_application_decision,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -794,6 +795,11 @@ with input_col2:
                 resume_text,
                 job_description_text,
             )
+            application_decision = generate_application_decision(
+                job_comparison,
+                semantic_match_score,
+                critical_requirements,
+            )
             mode_report_text = generate_mode_report(
                 user_mode,
                 job_comparison,
@@ -811,6 +817,7 @@ with input_col2:
                 "semantic_match_score": semantic_match_score,
                 "semantic_match_details": semantic_match_details,
                 "critical_requirements": critical_requirements,
+                "application_decision": application_decision,
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
@@ -850,6 +857,13 @@ with input_col2:
             critical_requirements = evaluate_critical_requirements(
                 match_result.get("resume_text", ""),
                 match_result.get("job_description_text", ""),
+            )
+        application_decision = match_result.get("application_decision")
+        if application_decision is None:
+            application_decision = generate_application_decision(
+                job_comparison,
+                semantic_match_score,
+                critical_requirements,
             )
         mode_report_text = match_result["mode_report_text"]
         target_career_match = calculate_target_career_match(
@@ -953,6 +967,21 @@ with input_col2:
                 "or mandatory technology requirement was detected."
             )
         critical_panel.caption(critical_requirements["disclaimer"])
+
+        decision_panel = st.container(border=True)
+        decision_panel.markdown("### Evidence-Based Application Decision")
+        decision_panel.markdown(
+            f"**Recommendation: {application_decision['decision']}**"
+        )
+        getattr(decision_panel, application_decision["message_type"])(
+            application_decision["headline"]
+        )
+        for decision_reason in application_decision["reasons"]:
+            decision_panel.markdown(f"- {decision_reason}")
+        decision_panel.write(
+            f"**Recommended action:** {application_decision['next_action']}"
+        )
+        decision_panel.caption(application_decision["disclaimer"])
 
         action_summary = generate_match_action_summary(
             job_comparison,
