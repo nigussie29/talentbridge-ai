@@ -106,6 +106,7 @@ The app currently supports:
 * Data Analyst
 * Machine Learning Engineer
 * AI Education Specialist
+* QA Analyst / Data Quality Analyst
 
 ---
 
@@ -161,6 +162,13 @@ Example:
 ```text
 Job Match Score: 50%
 ```
+
+### Actionable Match Summary
+
+Immediately below the three match scores, the app translates the evidence into
+a concise fit level, the candidate's top three matched strengths, the three
+highest-priority gaps, and one truthful next action. The summary is career-aware
+and explicitly presented as guidance rather than a hiring decision.
 
 ### Matched Skills
 
