@@ -18,6 +18,7 @@ from career_engine import (
     generate_text_report,
     analyze_job_description,
     validate_analysis_inputs,
+    evaluate_critical_requirements,
     compare_resume_to_job,
     generate_course_plan,
     generate_hr_report,
@@ -789,6 +790,10 @@ with input_col2:
                 job_description_text,
             )
             semantic_match_score = semantic_match_details["semantic_score"]
+            critical_requirements = evaluate_critical_requirements(
+                resume_text,
+                job_description_text,
+            )
             mode_report_text = generate_mode_report(
                 user_mode,
                 job_comparison,
@@ -805,6 +810,7 @@ with input_col2:
                 "improvement_score": improvement_score,
                 "semantic_match_score": semantic_match_score,
                 "semantic_match_details": semantic_match_details,
+                "critical_requirements": critical_requirements,
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
@@ -839,6 +845,12 @@ with input_col2:
                 match_result.get("job_description_text", ""),
             )
             semantic_match_score = semantic_match_details["semantic_score"]
+        critical_requirements = match_result.get("critical_requirements")
+        if critical_requirements is None:
+            critical_requirements = evaluate_critical_requirements(
+                match_result.get("resume_text", ""),
+                match_result.get("job_description_text", ""),
+            )
         mode_report_text = match_result["mode_report_text"]
         target_career_match = calculate_target_career_match(
             resume_skills,
@@ -901,6 +913,46 @@ with input_col2:
             "posting. Target Career Match updates automatically when the sidebar "
             "career changes."
         )
+
+        critical_panel = st.expander(
+            "Critical Requirements — "
+            f"{critical_requirements['met_count']} met, "
+            f"{critical_requirements['unclear_count']} unclear, "
+            f"{critical_requirements['missing_count']} missing",
+            expanded=(
+                critical_requirements["missing_count"] > 0
+                or critical_requirements["unclear_count"] > 0
+            ),
+        )
+        critical_panel.markdown(
+            f"**{critical_requirements['overall_status']}**"
+        )
+        critical_col1, critical_col2, critical_col3 = critical_panel.columns(3)
+        with critical_col1:
+            st.metric("Met", critical_requirements["met_count"])
+        with critical_col2:
+            st.metric("Unclear", critical_requirements["unclear_count"])
+        with critical_col3:
+            st.metric("Missing", critical_requirements["missing_count"])
+
+        if critical_requirements["requirements"]:
+            critical_panel.table(
+                [
+                    {
+                        "Category": item["category"],
+                        "Requirement": item["requirement"],
+                        "Status": item["status"],
+                        "Resume Evidence": item["evidence"],
+                    }
+                    for item in critical_requirements["requirements"]
+                ]
+            )
+        else:
+            critical_panel.info(
+                "No explicit experience, seniority, education, certification, "
+                "or mandatory technology requirement was detected."
+            )
+        critical_panel.caption(critical_requirements["disclaimer"])
 
         action_summary = generate_match_action_summary(
             job_comparison,
