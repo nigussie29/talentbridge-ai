@@ -202,6 +202,20 @@ Semantic Match, or Target Career Match. Evidence strength evaluates résumé
 wording only and does not verify proficiency, experience duration, or employer
 endorsement.
 
+### Evidence-Adjusted Requirement Score
+
+TalentBridge AI converts the required-skill evidence levels into a separate,
+transparent evidence-quality score. **Strong Evidence** receives 100% weight,
+**Moderate Evidence** 65%, **Mention Only** 25%, and **Missing** 0%. The score
+is the average weight across required skills only; preferred qualifications are
+excluded.
+
+The results panel shows the weighting method, number of required skills,
+earned evidence points, level-by-level breakdown, coverage status, and a
+truthful next action. This score helps prevent a keyword-only mention from
+being treated like demonstrated use. It does not change Job Description Match,
+Semantic Match, or Target Career Match and is not an employer decision.
+
 ### Input Quality Guardrails
 
 Before running an analysis, TalentBridge AI checks the résumé and job

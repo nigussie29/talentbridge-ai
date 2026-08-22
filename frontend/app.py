@@ -36,6 +36,7 @@ from career_engine import (
     generate_application_decision,
     generate_score_interpretation,
     calculate_analysis_confidence,
+    calculate_evidence_adjusted_requirement_score,
     generate_evidence_traceability,
     analyze_requirement_evidence_strength,
     analyze_skill_confidence,
@@ -902,6 +903,9 @@ with input_col2:
             match_result.get("job_description_text", ""),
             job_skill_requirements,
         )
+        evidence_adjusted_score = calculate_evidence_adjusted_requirement_score(
+            requirement_evidence_strength
+        )
         application_decision = generate_application_decision(
             job_comparison,
             semantic_match_score,
@@ -1089,6 +1093,38 @@ with input_col2:
             f"{requirement_evidence_strength['next_step']}"
         )
         strength_panel.caption(requirement_evidence_strength["disclaimer"])
+
+        adjusted_panel = st.expander(
+            "Evidence-Adjusted Requirement Score — "
+            f"{evidence_adjusted_score['score']}% "
+            f"({evidence_adjusted_score['status']})",
+            expanded=(
+                evidence_adjusted_score["total_requirements"] > 0
+                and evidence_adjusted_score["score"] < 65
+            ),
+        )
+        adjusted_col1, adjusted_col2, adjusted_col3 = adjusted_panel.columns(3)
+        adjusted_col1.metric(
+            "Evidence-Adjusted Score",
+            f"{evidence_adjusted_score['score']}%",
+        )
+        adjusted_col2.metric(
+            "Required Skills",
+            evidence_adjusted_score["total_requirements"],
+        )
+        adjusted_col3.metric(
+            "Evidence Points",
+            f"{evidence_adjusted_score['earned_points']} / "
+            f"{evidence_adjusted_score['total_requirements']}",
+        )
+        adjusted_panel.table(evidence_adjusted_score["breakdown"])
+        adjusted_panel.write(
+            f"**Method:** {evidence_adjusted_score['methodology']}"
+        )
+        adjusted_panel.write(
+            f"**Recommended next step:** {evidence_adjusted_score['next_step']}"
+        )
+        adjusted_panel.caption(evidence_adjusted_score["disclaimer"])
 
         critical_panel = st.expander(
             "Critical Requirements — "
