@@ -19,10 +19,56 @@ from career_engine import (
     prioritize_missing_skills,
     rank_career_matches,
     recommend_careers_from_resume,
+    validate_analysis_inputs,
 )
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_input_quality_blocks_chat_instructions_in_job_description(self):
+        result = validate_analysis_inputs(
+            "Built Python and SQL data-validation projects for reporting teams.",
+            (
+                "Open Manage app, reboot app, then click Compare Resume to Job "
+                "Description and send me a screenshot."
+            ),
+        )
+
+        self.assertFalse(result["can_analyze"])
+        self.assertEqual(result["quality_level"], "Blocked")
+        self.assertIn("app or chat instructions", result["errors"][0])
+
+    def test_input_quality_allows_brief_test_data_with_warning(self):
+        result = validate_analysis_inputs(
+            "Built Python SQL project.",
+            "Seeking Python SQL and Power BI developer.",
+        )
+
+        self.assertTrue(result["can_analyze"])
+        self.assertEqual(result["quality_level"], "Review Recommended")
+        self.assertGreaterEqual(len(result["warnings"]), 2)
+
+    def test_input_quality_accepts_detailed_inputs(self):
+        resume = (
+            "Built Python and SQL machine learning pipelines, analyzed datasets "
+            "with Pandas, created Power BI dashboards, deployed FastAPI services "
+            "with Docker to Azure, used Git for version control, documented model "
+            "results, and presented findings to technical and business stakeholders. "
+        ) * 2
+        job = (
+            "The engineer will build Python and SQL machine learning pipelines, "
+            "analyze datasets with Pandas, create data visualizations, develop "
+            "FastAPI REST APIs, package services with Docker, deploy to Azure, use "
+            "Git for version control, document results, and communicate findings "
+            "to technical and business stakeholders. "
+        ) * 2
+
+        result = validate_analysis_inputs(resume, job)
+
+        self.assertTrue(result["can_analyze"])
+        self.assertEqual(result["quality_level"], "Ready")
+        self.assertEqual(result["errors"], [])
+        self.assertEqual(result["warnings"], [])
+
     def test_match_action_summary_prioritizes_qa_gaps(self):
         summary = generate_match_action_summary(
             {

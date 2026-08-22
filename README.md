@@ -153,6 +153,15 @@ skills.
 
 Users can paste a job description. The app detects required job skills and compares them with the resume skills.
 
+### Input Quality Guardrails
+
+Before running an analysis, TalentBridge AI checks the résumé and job
+description for basic completeness. It blocks inputs that are too short or that
+appear to contain app/chat instructions instead of a real job posting. Brief or
+low-skill inputs can still be used for testing, but the app displays a review
+warning and shows word and detected-skill counts so users can judge result
+quality.
+
 ### Job Match Score
 
 The app calculates how closely a resume matches a job description.

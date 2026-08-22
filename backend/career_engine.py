@@ -554,6 +554,87 @@ def analyze_job_description(job_description_text):
     return detect_skills(job_description_text)
 
 
+ANALYSIS_INSTRUCTION_PHRASES = (
+    "click compare",
+    "compare resume to job description",
+    "send me a screenshot",
+    "reboot app",
+    "manage app",
+    "tell me qa career appears",
+)
+
+
+def validate_analysis_inputs(resume_text, job_description_text):
+    """Assess whether the two inputs are suitable for a meaningful analysis."""
+    resume_text = str(resume_text or "").strip()
+    job_description_text = str(job_description_text or "").strip()
+    resume_word_count = len(re.findall(r"\b\w+\b", resume_text))
+    job_word_count = len(re.findall(r"\b\w+\b", job_description_text))
+    detected_resume_skills = detect_skills(resume_text)
+    detected_job_skills = detect_skills(job_description_text)
+    normalized_job_text = _normalize_skill_text(job_description_text)
+
+    errors = []
+    warnings = []
+
+    if resume_word_count < 3:
+        errors.append(
+            "The resume input is too short. Add skills, projects, or work "
+            "experience before analyzing."
+        )
+
+    if job_word_count < 5:
+        errors.append(
+            "The job description is too short. Paste the responsibilities and "
+            "required qualifications before analyzing."
+        )
+
+    instruction_phrases = [
+        phrase
+        for phrase in ANALYSIS_INSTRUCTION_PHRASES
+        if phrase in normalized_job_text
+    ]
+    if instruction_phrases:
+        errors.append(
+            "The Job Description box appears to contain app or chat "
+            "instructions. Replace them with the actual job posting."
+        )
+
+    if 0 < resume_word_count < 40:
+        warnings.append(
+            "The resume text is brief, so some skills or evidence may be missed."
+        )
+
+    if 0 < job_word_count < 50:
+        warnings.append(
+            "The job description is brief, so the match score may be incomplete."
+        )
+
+    if job_word_count >= 5 and len(detected_job_skills) < 3:
+        warnings.append(
+            "Fewer than three recognizable job skills were detected. Confirm "
+            "that the complete job requirements were pasted."
+        )
+
+    if errors:
+        quality_level = "Blocked"
+    elif warnings:
+        quality_level = "Review Recommended"
+    else:
+        quality_level = "Ready"
+
+    return {
+        "can_analyze": not errors,
+        "quality_level": quality_level,
+        "resume_word_count": resume_word_count,
+        "job_word_count": job_word_count,
+        "resume_skill_count": len(detected_resume_skills),
+        "job_skill_count": len(detected_job_skills),
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
 def compare_resume_to_job(resume_skills, job_required_skills):
     matched_skills = []
     missing_skills = []
