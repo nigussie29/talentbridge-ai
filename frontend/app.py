@@ -35,6 +35,7 @@ from career_engine import (
     generate_match_action_summary,
     generate_application_decision,
     generate_score_interpretation,
+    calculate_analysis_confidence,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -807,6 +808,11 @@ with input_col2:
                 semantic_match_score,
                 critical_requirements,
             )
+            analysis_confidence = calculate_analysis_confidence(
+                input_quality,
+                job_comparison,
+                critical_requirements,
+            )
             mode_report_text = generate_mode_report(
                 user_mode,
                 job_comparison,
@@ -828,6 +834,7 @@ with input_col2:
                 "semantic_match_details": semantic_match_details,
                 "critical_requirements": critical_requirements,
                 "application_decision": application_decision,
+                "analysis_confidence": analysis_confidence,
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
@@ -897,6 +904,11 @@ with input_col2:
                 match_result.get("resume_text", ""),
                 match_result.get("job_description_text", ""),
             )
+        analysis_confidence = calculate_analysis_confidence(
+            input_quality,
+            job_comparison,
+            critical_requirements,
+        )
 
         st.subheader("Job Match Result")
         st.info(f"Selected Target Career: {target_career}")
@@ -948,6 +960,30 @@ with input_col2:
             "posting. Target Career Match updates automatically when the sidebar "
             "career changes."
         )
+
+        confidence_panel = st.expander(
+            "Analysis Confidence — "
+            f"{analysis_confidence['confidence_level']} "
+            f"({analysis_confidence['confidence_score']}%)",
+            expanded=analysis_confidence["confidence_level"] != "High",
+        )
+        getattr(
+            confidence_panel,
+            analysis_confidence["message_type"],
+        )(analysis_confidence["headline"])
+        confidence_panel.table(analysis_confidence["factors"])
+        if analysis_confidence["limitations"]:
+            confidence_panel.markdown("**Evidence limitations**")
+            for limitation in analysis_confidence["limitations"]:
+                confidence_panel.markdown(f"- {limitation}")
+        else:
+            confidence_panel.success(
+                "No major evidence-quality limitations were detected."
+            )
+        confidence_panel.write(
+            f"**Recommended next step:** {analysis_confidence['next_step']}"
+        )
+        confidence_panel.caption(analysis_confidence["disclaimer"])
 
         score_interpretation = generate_score_interpretation(
             job_comparison,

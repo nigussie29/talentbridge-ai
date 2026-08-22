@@ -5,6 +5,7 @@ from career_engine import (
     analyze_job_description,
     analyze_resume_text,
     analyze_skill_confidence,
+    calculate_analysis_confidence,
     calculate_improvement_score,
     calculate_proof_based_readiness_score,
     calculate_semantic_match_details,
@@ -28,6 +29,128 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_analysis_confidence_is_low_for_brief_perfect_match(self):
+        result = calculate_analysis_confidence(
+            {
+                "resume_word_count": 13,
+                "job_word_count": 15,
+                "resume_skill_count": 4,
+                "job_skill_count": 7,
+            },
+            {
+                "matched_skills": [
+                    "Python",
+                    "SQL",
+                    "Machine Learning",
+                    "Docker",
+                ],
+                "missing_skills": [],
+                "match_score": 100.0,
+            },
+            {
+                "met_count": 0,
+                "unclear_count": 0,
+                "missing_count": 0,
+            },
+        )
+
+        self.assertEqual(result["confidence_level"], "Low")
+        self.assertLess(result["confidence_score"], 60)
+        self.assertIn("preliminary", result["headline"])
+        self.assertGreaterEqual(len(result["limitations"]), 3)
+
+    def test_analysis_confidence_is_high_for_complete_evidence(self):
+        result = calculate_analysis_confidence(
+            {
+                "resume_word_count": 240,
+                "job_word_count": 180,
+                "resume_skill_count": 12,
+                "job_skill_count": 10,
+            },
+            {
+                "matched_skills": [
+                    "Python",
+                    "SQL",
+                    "Machine Learning",
+                    "Docker",
+                    "Cloud",
+                    "REST APIs",
+                ],
+                "missing_skills": ["Kubernetes", "Databricks"],
+                "match_score": 75.0,
+            },
+            {
+                "met_count": 3,
+                "unclear_count": 0,
+                "missing_count": 1,
+            },
+        )
+
+        self.assertEqual(result["confidence_level"], "High")
+        self.assertEqual(result["confidence_score"], 100.0)
+        self.assertEqual(result["limitations"], [])
+        self.assertIn("does not measure candidate quality", result["disclaimer"])
+
+    def test_analysis_confidence_reduces_for_unclear_critical_evidence(self):
+        result = calculate_analysis_confidence(
+            {
+                "resume_word_count": 240,
+                "job_word_count": 180,
+                "resume_skill_count": 12,
+                "job_skill_count": 10,
+            },
+            {
+                "matched_skills": [
+                    "Python",
+                    "SQL",
+                    "Machine Learning",
+                    "Docker",
+                    "Cloud",
+                    "REST APIs",
+                ],
+                "missing_skills": ["Kubernetes", "Databricks"],
+                "match_score": 75.0,
+            },
+            {
+                "met_count": 0,
+                "unclear_count": 4,
+                "missing_count": 0,
+            },
+        )
+
+        self.assertEqual(result["confidence_level"], "Moderate")
+        self.assertEqual(result["confidence_score"], 75.0)
+        self.assertIn("4 critical requirement", result["limitations"][0])
+
+    def test_analysis_confidence_treats_clear_missing_as_resolved(self):
+        result = calculate_analysis_confidence(
+            {
+                "resume_word_count": 240,
+                "job_word_count": 180,
+                "resume_skill_count": 12,
+                "job_skill_count": 10,
+            },
+            {
+                "matched_skills": ["Python", "SQL", "Docker"],
+                "missing_skills": [
+                    "Kubernetes",
+                    "Databricks",
+                    "Apache Spark",
+                    "Cloud",
+                    "REST APIs",
+                ],
+                "match_score": 37.5,
+            },
+            {
+                "met_count": 1,
+                "unclear_count": 0,
+                "missing_count": 3,
+            },
+        )
+
+        self.assertEqual(result["confidence_level"], "High")
+        self.assertEqual(result["confidence_score"], 100.0)
+
     def test_score_interpretation_explains_three_different_scores(self):
         result = generate_score_interpretation(
             {

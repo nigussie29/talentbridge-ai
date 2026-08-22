@@ -177,6 +177,21 @@ low-skill inputs can still be used for testing, but the app displays a review
 warning and shows word and detected-skill counts so users can judge result
 quality.
 
+### Analysis Confidence
+
+Every completed comparison includes a separate **Analysis Confidence** rating:
+**High**, **Moderate**, or **Low**. This rating measures how much evidence
+supports the reliability of the analysis; it does not measure whether the
+candidate is a strong match.
+
+The confidence calculation uses résumé detail, job-posting detail, the number
+of detected required skills, résumé skill evidence, and whether critical
+requirements have resolved **Met** or **Missing** statuses instead of remaining
+**Unclear**. Its transparent factor table, evidence limitations, and recommended
+next step explain why a result received its rating. This prevents a 100% skill
+match from appearing fully reliable when it was produced from only a few words
+or a very small requirement sample.
+
 ### Job Match Score
 
 The app calculates how closely a resume matches a job description.
