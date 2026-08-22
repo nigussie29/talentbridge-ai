@@ -188,6 +188,16 @@ résumé. Each item is labeled **Met**, **Unclear**, or **Missing**. The check n
 converts an unclear claim into proven experience and reminds users that a human
 must verify uncertain evidence.
 
+### Evidence-Based Application Decision
+
+The results page combines the job-description skill match, semantic context,
+and critical-requirement evidence into one cautious recommendation: **Strong
+Match**, **Consider Applying**, **Improve Before Applying**, or **Insufficient
+Information**. Missing seniority, experience, education, or certification
+requirements are treated as stronger blockers than ordinary technology gaps.
+The recommendation includes its evidence, one truthful next action, and a clear
+statement that it is not an employer decision or interview guarantee.
+
 ### Matched Skills
 
 The app shows which skills appear in both the resume and the job description.
