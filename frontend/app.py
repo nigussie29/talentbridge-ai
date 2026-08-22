@@ -17,6 +17,7 @@ from career_engine import (
     create_profile_from_resume,
     generate_text_report,
     analyze_job_description,
+    validate_analysis_inputs,
     compare_resume_to_job,
     generate_course_plan,
     generate_hr_report,
@@ -763,11 +764,21 @@ with input_col2:
     )
 
     if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
+        input_quality = validate_analysis_inputs(
+            resume_text,
+            job_description_text,
+        )
         if resume_text.strip() == "":
             st.warning("Please paste your resume text or upload a resume PDF first.")
         elif job_description_text.strip() == "":
             st.warning("Please paste a job description first.")
+        elif not input_quality["can_analyze"]:
+            for quality_error in input_quality["errors"]:
+                st.error(quality_error)
         else:
+            for quality_warning in input_quality["warnings"]:
+                st.warning(quality_warning)
+
             resume_skills = analyze_resume_text(resume_text)
             job_required_skills = analyze_job_description(job_description_text)
             job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
@@ -797,6 +808,7 @@ with input_col2:
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
+                "input_quality": input_quality,
             }
 
             try:
@@ -832,9 +844,37 @@ with input_col2:
             resume_skills,
             target_career,
         )
+        input_quality = match_result.get("input_quality")
+        if input_quality is None:
+            input_quality = validate_analysis_inputs(
+                match_result.get("resume_text", ""),
+                match_result.get("job_description_text", ""),
+            )
 
         st.subheader("Job Match Result")
         st.info(f"Selected Target Career: {target_career}")
+
+        quality_panel = st.expander(
+            f"Input Quality — {input_quality['quality_level']}"
+        )
+        quality_col1, quality_col2, quality_col3, quality_col4 = (
+            quality_panel.columns(4)
+        )
+        with quality_col1:
+            st.metric("Resume Words", input_quality["resume_word_count"])
+        with quality_col2:
+            st.metric("Resume Skills", input_quality["resume_skill_count"])
+        with quality_col3:
+            st.metric("Job Words", input_quality["job_word_count"])
+        with quality_col4:
+            st.metric("Job Skills", input_quality["job_skill_count"])
+
+        for quality_warning in input_quality["warnings"]:
+            quality_panel.warning(quality_warning)
+        if not input_quality["warnings"] and not input_quality["errors"]:
+            quality_panel.success(
+                "Both inputs contain enough detail for the current analyzer."
+            )
 
         metric_col1, metric_col2, metric_col3 = st.columns(3)
 
