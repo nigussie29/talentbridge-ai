@@ -179,6 +179,15 @@ a concise fit level, the candidate's top three matched strengths, the three
 highest-priority gaps, and one truthful next action. The summary is career-aware
 and explicitly presented as guidance rather than a hiring decision.
 
+### Critical Requirements Check
+
+TalentBridge AI separately evaluates explicit requirements that a skill-match
+percentage can hide. It checks stated years of experience, seniority, degree
+level, named certifications, and mandatory technologies against evidence in the
+résumé. Each item is labeled **Met**, **Unclear**, or **Missing**. The check never
+converts an unclear claim into proven experience and reminds users that a human
+must verify uncertain evidence.
+
 ### Matched Skills
 
 The app shows which skills appear in both the resume and the job description.

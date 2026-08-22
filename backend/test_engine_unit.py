@@ -11,6 +11,7 @@ from career_engine import (
     calculate_semantic_match_score,
     calculate_target_career_match,
     compare_resume_to_job,
+    evaluate_critical_requirements,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
     generate_match_action_summary,
@@ -24,6 +25,80 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_critical_requirements_separate_met_and_missing_evidence(self):
+        result = evaluate_critical_requirements(
+            (
+                "Senior QA Analyst with 10+ years of experience using Python "
+                "and SQL for enterprise data validation."
+            ),
+            (
+                "We are seeking a senior QA Analyst. 8+ years of experience "
+                "with Python and SQL is required. Strong hands-on experience "
+                "with Databricks is required."
+            ),
+        )
+
+        requirements = {
+            (item["category"], item["requirement"]): item["status"]
+            for item in result["requirements"]
+        }
+        self.assertEqual(
+            requirements[("Seniority", "Senior-level candidate")],
+            "Met",
+        )
+        self.assertEqual(
+            requirements[("Experience", "8+ years of experience with Python, SQL")],
+            "Met",
+        )
+        self.assertEqual(requirements[("Technology", "Databricks")], "Missing")
+        self.assertGreaterEqual(result["met_count"], 3)
+        self.assertEqual(result["overall_status"], "Critical gaps detected")
+
+    def test_critical_requirements_keep_leadership_duration_unclear(self):
+        result = evaluate_critical_requirements(
+            "Senior QA Analyst with 8+ years of experience in quality assurance.",
+            "5+ years of experience leading QA efforts is required.",
+        )
+
+        experience_requirement = next(
+            item
+            for item in result["requirements"]
+            if item["category"] == "Experience"
+        )
+        self.assertEqual(experience_requirement["status"], "Unclear")
+        self.assertIn("leadership duration", experience_requirement["evidence"])
+
+    def test_critical_requirements_accept_higher_degree(self):
+        result = evaluate_critical_requirements(
+            "Education: Master of Science degree in Applied Mathematics.",
+            "A Bachelor's degree in mathematics or statistics is required.",
+        )
+
+        education_requirement = next(
+            item
+            for item in result["requirements"]
+            if item["category"] == "Education"
+        )
+        self.assertEqual(education_requirement["status"], "Met")
+        self.assertIn("Master's degree", education_requirement["evidence"])
+
+    def test_critical_requirements_do_not_treat_preferences_as_mandatory(self):
+        result = evaluate_critical_requirements(
+            "QA Analyst with Python and SQL experience.",
+            (
+                "Python and SQL are required. Databricks is preferred. "
+                "A Master's degree is optional."
+            ),
+        )
+
+        requirement_names = {
+            item["requirement"] for item in result["requirements"]
+        }
+        self.assertIn("Python", requirement_names)
+        self.assertIn("SQL", requirement_names)
+        self.assertNotIn("Databricks", requirement_names)
+        self.assertNotIn("Master's degree", requirement_names)
+
     def test_input_quality_blocks_chat_instructions_in_job_description(self):
         result = validate_analysis_inputs(
             "Built Python and SQL data-validation projects for reporting teams.",
