@@ -5,6 +5,7 @@ from career_engine import (
     analyze_job_description,
     analyze_resume_text,
     analyze_skill_confidence,
+    calculate_improvement_score,
     calculate_proof_based_readiness_score,
     calculate_semantic_match_details,
     calculate_semantic_match_score,
@@ -21,6 +22,33 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_improvement_score_is_a_partial_gap_projection(self):
+        result = calculate_improvement_score(
+            {
+                "matched_skills": [f"Matched {index}" for index in range(15)],
+                "missing_skills": [f"Gap {index}" for index in range(13)],
+                "match_score": 53.57,
+            }
+        )
+
+        self.assertEqual(result["projected_gap_closures"], 7)
+        self.assertEqual(result["estimated_score_after_training"], 78.57)
+        self.assertEqual(result["improvement_potential"], 25.0)
+        self.assertLess(result["estimated_score_after_training"], 100.0)
+        self.assertIn("not a guaranteed result", result["projection_assumption"])
+
+    def test_improvement_score_preserves_verified_complete_match(self):
+        result = calculate_improvement_score(
+            {
+                "matched_skills": ["Python", "SQL"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            }
+        )
+
+        self.assertEqual(result["estimated_score_after_training"], 100.0)
+        self.assertEqual(result["improvement_potential"], 0.0)
+
     def test_career_profile_recommends_projects_for_every_skill_gap(self):
         profile = {
             "python_skill": 4,

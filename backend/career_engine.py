@@ -839,16 +839,27 @@ def generate_progress_tracker(missing_skills):
     return tracker
 def calculate_improvement_score(job_comparison):
     current_score = job_comparison["match_score"]
+    matched_skills = job_comparison.get("matched_skills", [])
     missing_skills = job_comparison["missing_skills"]
+    total_required_skills = len(matched_skills) + len(missing_skills)
 
-    # Simple rule:
-    # each missing skill completed can improve readiness by 6 points
-    possible_improvement = len(missing_skills) * 6
+    # This is a planning scenario, not a promise. Assume the candidate closes
+    # and proves roughly half of the current gaps, then cap the projection below
+    # 100 while any gaps remain. A perfect score is reserved for evidence that
+    # already matches every detected requirement.
+    projected_gap_closures = (len(missing_skills) + 1) // 2
+    if total_required_skills == 0:
+        estimated_score = current_score
+    elif not missing_skills:
+        estimated_score = 100.0
+    else:
+        estimated_score = (
+            (len(matched_skills) + projected_gap_closures)
+            / total_required_skills
+        ) * 100
+        estimated_score = min(estimated_score, 95.0)
 
-    estimated_score = current_score + possible_improvement
-
-    if estimated_score > 100:
-        estimated_score = 100
+    estimated_score = max(current_score, estimated_score)
 
     improvement_potential = estimated_score - current_score
 
@@ -871,7 +882,14 @@ def calculate_improvement_score(job_comparison):
         "estimated_score_after_training": round(estimated_score, 2),
         "improvement_potential": round(improvement_potential, 2),
         "current_status": current_status,
-        "estimated_status_after_training": estimated_status
+        "estimated_status_after_training": estimated_status,
+        "projected_gap_closures": projected_gap_closures,
+        "total_missing_skills": len(missing_skills),
+        "projection_assumption": (
+            "Planning estimate only: assumes the candidate completes and "
+            f"proves {projected_gap_closures} of {len(missing_skills)} current "
+            "skill gaps. It is not a guaranteed result."
+        ),
     }
 def prioritize_missing_skills(missing_skills, target_career=None):
     high_priority = [

@@ -943,21 +943,22 @@ with input_col2:
 
         with col_b:
             st.metric(
-                "After Training",
+                "Projected Score",
                 f"{improvement_score['estimated_score_after_training']}%",
             )
 
         with col_c:
             st.metric(
-                "Improvement",
+                "Potential Gain",
                 f"+{improvement_score['improvement_potential']}%",
             )
 
         st.write(
-            "**Status Change:**",
+            "**Projected Status:**",
             f"{improvement_score['current_status']} → "
             f"{improvement_score['estimated_status_after_training']}",
         )
+        st.caption(improvement_score["projection_assumption"])
 
         st.subheader("Before-and-After Readiness History")
 
@@ -968,7 +969,7 @@ with input_col2:
                 "Status": improvement_score["current_status"],
             },
             {
-                "Stage": "After Recommended Training",
+                "Stage": "Projected After Partial Gap Closure",
                 "Score": f"{improvement_score['estimated_score_after_training']}%",
                 "Status": improvement_score["estimated_status_after_training"],
             },
