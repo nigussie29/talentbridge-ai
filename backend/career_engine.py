@@ -1824,6 +1824,146 @@ def calculate_semantic_match_score(resume_text, job_description_text):
     )["semantic_score"]
 
 
+def generate_score_interpretation(
+    job_comparison,
+    semantic_match_details,
+    target_career_match,
+):
+    """Explain why the three public match scores can legitimately differ."""
+    matched_skills = job_comparison.get("matched_skills", [])
+    missing_skills = job_comparison.get("missing_skills", [])
+    required_count = len(matched_skills) + len(missing_skills)
+    job_score = float(job_comparison.get("match_score", 0) or 0)
+
+    semantic_match_details = semantic_match_details or {}
+    semantic_score = float(
+        semantic_match_details.get("semantic_score", 0) or 0
+    )
+    context_score = float(
+        semantic_match_details.get("context_similarity_score", 0) or 0
+    )
+    skill_alignment_score = float(
+        semantic_match_details.get("skill_alignment_score", 0) or 0
+    )
+    preferred_count = int(
+        semantic_match_details.get("preferred_skill_count", 0) or 0
+    )
+
+    target_career_match = target_career_match or {}
+    target_score = float(target_career_match.get("match_score", 0) or 0)
+    target_career = target_career_match.get("target_career", "selected career")
+    target_status = target_career_match.get("status", "Not available")
+
+    if required_count:
+        job_reason = (
+            f"Matched {len(matched_skills)} of {required_count} required "
+            "skills."
+        )
+    else:
+        job_reason = "No recognizable required skills were detected."
+    if preferred_count:
+        job_reason += (
+            f" {preferred_count} preferred skill(s) are reported separately."
+        )
+
+    if required_count:
+        semantic_reason = (
+            f"Combines 65% required-skill alignment "
+            f"({skill_alignment_score:.2f}%) and 35% résumé/job context "
+            f"similarity ({context_score:.2f}%)."
+        )
+    else:
+        semantic_reason = (
+            f"Uses résumé/job context similarity ({context_score:.2f}%) "
+            "because no recognizable required skills were detected."
+        )
+
+    target_reason = (
+        f"Measures the résumé against the broader {target_career} benchmark, "
+        f"not only this posting. Current status: {target_status}."
+    )
+
+    score_rows = [
+        {
+            "Score": "Job Description Match",
+            "Result": f"{job_score:.2f}%",
+            "What It Measures": "Required skills in this posting",
+            "Why This Result": job_reason,
+        },
+        {
+            "Score": "Semantic Match",
+            "Result": f"{semantic_score:.2f}%",
+            "What It Measures": "Required skills plus wording and context",
+            "Why This Result": semantic_reason,
+        },
+        {
+            "Score": "Target Career Match",
+            "Result": f"{target_score:.2f}%",
+            "What It Measures": f"Broader {target_career} readiness",
+            "Why This Result": target_reason,
+        },
+    ]
+
+    if required_count == 0:
+        summary = (
+            "The posting lacks recognizable required skills, so the scores "
+            "should not be treated as a complete comparison."
+        )
+        next_step = (
+            "Paste the complete job responsibilities and required qualifications."
+        )
+    elif job_score - semantic_score >= 10:
+        summary = (
+            "Required-skill coverage is stronger than résumé/job wording and "
+            "context alignment."
+        )
+        next_step = (
+            "Tailor truthful résumé bullets to the posting's responsibilities "
+            "and terminology while keeping the proven skills unchanged."
+        )
+    elif semantic_score - job_score >= 10:
+        summary = (
+            "Résumé/job wording and context are stronger than exact required-"
+            "skill coverage."
+        )
+        next_step = (
+            "Review the missing required skills and add them only when supported "
+            "by truthful evidence."
+        )
+    elif abs(job_score - semantic_score) < 10:
+        summary = (
+            "Required-skill coverage and résumé/job context tell a consistent "
+            "story."
+        )
+        next_step = (
+            "Prepare evidence-based examples for the matched requirements and "
+            "verify every résumé claim."
+        )
+    else:
+        summary = "The scores use different evidence and should be read separately."
+        next_step = "Review the detailed evidence below each score."
+
+    if target_score + 10 <= job_score:
+        summary += (
+            f" This posting fits better than the broader {target_career} benchmark."
+        )
+    elif target_score >= job_score + 10:
+        summary += (
+            f" Broader {target_career} readiness is stronger than the fit for "
+            "this specific posting."
+        )
+
+    return {
+        "scores": score_rows,
+        "summary": summary,
+        "next_step": next_step,
+        "disclaimer": (
+            "These scores answer different questions. They are guidance, not "
+            "a hiring decision or guarantee."
+        ),
+    }
+
+
 def calculate_proof_based_readiness_score(
     job_match_score,
     semantic_match_score,
