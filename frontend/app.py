@@ -30,6 +30,7 @@ from career_engine import (
     screen_multiple_candidates,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
+    generate_match_action_summary,
     analyze_skill_confidence,
     generate_resume_improvement_plan,
     recommend_careers_from_resume,
@@ -860,6 +861,33 @@ with input_col2:
             "posting. Target Career Match updates automatically when the sidebar "
             "career changes."
         )
+
+        action_summary = generate_match_action_summary(
+            job_comparison,
+            target_career=target_career,
+        )
+        action_panel = st.container(border=True)
+        action_panel.markdown("### Recommended Next Action")
+        getattr(action_panel, action_summary["message_type"])(
+            action_summary["headline"]
+        )
+        action_col1, action_col2 = action_panel.columns(2)
+        with action_col1:
+            st.markdown("**Top Strengths**")
+            render_compact_skill_list(
+                st,
+                action_summary["top_strengths"],
+                "No matched strengths detected yet.",
+            )
+        with action_col2:
+            st.markdown("**Priority Gaps**")
+            render_compact_skill_list(
+                st,
+                action_summary["priority_gaps"],
+                "No priority gaps detected.",
+            )
+        action_panel.write(f"**Next step:** {action_summary['next_action']}")
+        action_panel.caption(action_summary["disclaimer"])
 
         with st.expander("How the semantic score is calculated"):
             semantic_col1, semantic_col2 = st.columns(2)
