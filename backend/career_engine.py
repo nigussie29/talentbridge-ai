@@ -2226,8 +2226,15 @@ def generate_application_decision(
     job_comparison,
     semantic_match_score,
     critical_requirements,
+    evidence_adjusted_score=None,
+    analysis_confidence=None,
 ):
-    """Create a cautious application recommendation from existing evidence."""
+    """Create a cautious application recommendation from existing evidence.
+
+    The three match scores remain independent inputs. Optional evidence-quality
+    and analysis-confidence results can only make the recommendation more
+    cautious; they can never upgrade it.
+    """
     matched_skills = job_comparison.get("matched_skills", [])
     missing_skills = job_comparison.get("missing_skills", [])
     skill_match_score = float(job_comparison.get("match_score", 0) or 0)
@@ -2349,14 +2356,127 @@ def generate_application_decision(
                 "for the matched skills."
             )
 
+    original_decision = decision
+    guardrail_reasons = []
+    maximum_decision = None
+    decision_rank = {
+        "Improve Before Applying": 0,
+        "Consider Applying": 1,
+        "Strong Match": 2,
+    }
+
+    evidence_adjusted_score = evidence_adjusted_score or {}
+    evidence_requirement_count = int(
+        evidence_adjusted_score.get("total_requirements", 0) or 0
+    )
+    if evidence_requirement_count:
+        evidence_score_value = float(
+            evidence_adjusted_score.get("score", 0) or 0
+        )
+        evidence_status = evidence_adjusted_score.get(
+            "status",
+            "Evidence Coverage",
+        )
+        reasons.append(
+            "Evidence quality: the evidence-adjusted required-skill score is "
+            f"{round(evidence_score_value, 2)}% ({evidence_status})."
+        )
+        if evidence_score_value < 40:
+            maximum_decision = "Improve Before Applying"
+            guardrail_reasons.append(
+                "Required-skill evidence coverage is below 40%, so the "
+                "recommendation cannot exceed Improve Before Applying."
+            )
+        elif evidence_score_value < 65:
+            maximum_decision = "Consider Applying"
+            guardrail_reasons.append(
+                "Required-skill evidence coverage is below 65%, so the "
+                "recommendation cannot be Strong Match."
+            )
+
+    analysis_confidence = analysis_confidence or {}
+    confidence_level = analysis_confidence.get("confidence_level")
+    confidence_score = analysis_confidence.get("confidence_score")
+    if confidence_level:
+        confidence_text = f"Analysis reliability: confidence is {confidence_level}"
+        if confidence_score is not None:
+            confidence_text += f" ({round(float(confidence_score), 2)}%)"
+        reasons.append(confidence_text + ".")
+    if confidence_level == "Low":
+        low_confidence_cap = "Consider Applying"
+        if (
+            maximum_decision is None
+            or decision_rank[low_confidence_cap]
+            < decision_rank[maximum_decision]
+        ):
+            maximum_decision = low_confidence_cap
+        guardrail_reasons.append(
+            "Analysis Confidence is Low, so the available inputs do not "
+            "support a Strong Match recommendation."
+        )
+
+    guardrail_applied = False
+    if (
+        maximum_decision is not None
+        and decision in decision_rank
+        and decision_rank[decision] > decision_rank[maximum_decision]
+    ):
+        decision = maximum_decision
+        guardrail_applied = True
+        if decision == "Improve Before Applying":
+            message_type = "warning"
+            headline = (
+                "The detected skills need stronger truthful résumé evidence "
+                "before this should be treated as an application-ready match."
+            )
+            next_action = (
+                "Build or document truthful evidence for the missing and "
+                "weakly supported required skills, then rerun the analysis."
+            )
+        else:
+            message_type = "info"
+            headline = (
+                "The skill alignment is promising, but the available evidence "
+                "does not support a Strong Match recommendation yet."
+            )
+            next_action = (
+                "Review the evidence limitations and strengthen required-skill "
+                "examples truthfully before relying on a stronger recommendation."
+            )
+
+    if guardrail_applied:
+        guardrail_status = "Recommendation Adjusted"
+        guardrail_summary = (
+            f"The evidence-aware guardrail changed {original_decision} to "
+            f"{decision}."
+        )
+    elif guardrail_reasons:
+        guardrail_status = "Caution Confirmed"
+        guardrail_summary = (
+            "The evidence-aware guardrail supports the current cautious "
+            "recommendation."
+        )
+    else:
+        guardrail_status = "No Adjustment Needed"
+        guardrail_summary = (
+            "No evidence-quality or confidence condition required a more "
+            "cautious recommendation."
+        )
+
     return {
         "decision": decision,
+        "original_decision": original_decision,
         "message_type": message_type,
         "headline": headline,
         "reasons": reasons,
         "next_action": next_action,
         "critical_support_score": critical_support_score,
         "blocking_requirements": blocking_requirements,
+        "guardrail_applied": guardrail_applied,
+        "guardrail_status": guardrail_status,
+        "guardrail_summary": guardrail_summary,
+        "guardrail_reasons": guardrail_reasons,
+        "maximum_recommendation": maximum_decision,
         "disclaimer": (
             "This is evidence-based guidance, not an employer decision, "
             "eligibility ruling, or guarantee of an interview."

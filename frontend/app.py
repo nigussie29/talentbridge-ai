@@ -811,15 +811,25 @@ with input_col2:
                 job_description_text,
                 job_skill_requirements,
             )
-            application_decision = generate_application_decision(
-                job_comparison,
-                semantic_match_score,
-                critical_requirements,
+            requirement_evidence_strength = analyze_requirement_evidence_strength(
+                resume_text,
+                job_description_text,
+                job_skill_requirements,
+            )
+            evidence_adjusted_score = calculate_evidence_adjusted_requirement_score(
+                requirement_evidence_strength
             )
             analysis_confidence = calculate_analysis_confidence(
                 input_quality,
                 job_comparison,
                 critical_requirements,
+            )
+            application_decision = generate_application_decision(
+                job_comparison,
+                semantic_match_score,
+                critical_requirements,
+                evidence_adjusted_score=evidence_adjusted_score,
+                analysis_confidence=analysis_confidence,
             )
             mode_report_text = generate_mode_report(
                 user_mode,
@@ -842,6 +852,8 @@ with input_col2:
                 "semantic_match_details": semantic_match_details,
                 "critical_requirements": critical_requirements,
                 "evidence_traceability": evidence_traceability,
+                "requirement_evidence_strength": requirement_evidence_strength,
+                "evidence_adjusted_score": evidence_adjusted_score,
                 "application_decision": application_decision,
                 "analysis_confidence": analysis_confidence,
                 "mode_report_text": mode_report_text,
@@ -906,11 +918,6 @@ with input_col2:
         evidence_adjusted_score = calculate_evidence_adjusted_requirement_score(
             requirement_evidence_strength
         )
-        application_decision = generate_application_decision(
-            job_comparison,
-            semantic_match_score,
-            critical_requirements,
-        )
         mode_report_text = generate_mode_report(
             user_mode,
             job_comparison,
@@ -930,6 +937,13 @@ with input_col2:
             input_quality,
             job_comparison,
             critical_requirements,
+        )
+        application_decision = generate_application_decision(
+            job_comparison,
+            semantic_match_score,
+            critical_requirements,
+            evidence_adjusted_score=evidence_adjusted_score,
+            analysis_confidence=analysis_confidence,
         )
 
         st.subheader("Job Match Result")
@@ -1174,6 +1188,18 @@ with input_col2:
         getattr(decision_panel, application_decision["message_type"])(
             application_decision["headline"]
         )
+        decision_panel.markdown(
+            "#### Evidence-Aware Decision Guardrail — "
+            f"{application_decision['guardrail_status']}"
+        )
+        if application_decision["guardrail_applied"]:
+            decision_panel.warning(application_decision["guardrail_summary"])
+        elif application_decision["guardrail_reasons"]:
+            decision_panel.info(application_decision["guardrail_summary"])
+        else:
+            decision_panel.success(application_decision["guardrail_summary"])
+        for guardrail_reason in application_decision["guardrail_reasons"]:
+            decision_panel.markdown(f"- {guardrail_reason}")
         for decision_reason in application_decision["reasons"]:
             decision_panel.markdown(f"- {decision_reason}")
         decision_panel.write(

@@ -276,6 +276,20 @@ requirements are treated as stronger blockers than ordinary technology gaps.
 The recommendation includes its evidence, one truthful next action, and a clear
 statement that it is not an employer decision or interview guarantee.
 
+### Evidence-Aware Decision Guardrail
+
+TalentBridge AI prevents a high keyword match from automatically becoming a
+**Strong Match** recommendation when the supporting evidence is incomplete. An
+Evidence-Adjusted Requirement Score below 65% caps the recommendation at
+**Consider Applying**; a score below 40% caps it at **Improve Before Applying**.
+Low Analysis Confidence also prevents a **Strong Match** recommendation.
+
+The guardrail can only make the application recommendation more cautious. It
+never upgrades a recommendation and does not change Job Description Match,
+Semantic Match, Target Career Match, or the Evidence-Adjusted Requirement
+Score. The decision panel shows whether a guardrail changed the recommendation
+and explains each limiting condition.
+
 ### Matched Skills
 
 The app shows which skills appear in both the resume and the job description.
