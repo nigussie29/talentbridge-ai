@@ -1103,6 +1103,165 @@ def validate_analysis_inputs(resume_text, job_description_text):
     }
 
 
+def calculate_analysis_confidence(
+    input_quality,
+    job_comparison,
+    critical_requirements,
+):
+    """Estimate how much evidence supports the reliability of an analysis.
+
+    Confidence is deliberately separate from candidate fit. A clearly missing
+    skill can be a high-confidence finding, while a perfect match produced from
+    very short inputs can still have low confidence.
+    """
+    input_quality = input_quality or {}
+    job_comparison = job_comparison or {}
+    critical_requirements = critical_requirements or {}
+
+    resume_word_count = int(input_quality.get("resume_word_count", 0) or 0)
+    job_word_count = int(input_quality.get("job_word_count", 0) or 0)
+    resume_skill_count = int(input_quality.get("resume_skill_count", 0) or 0)
+    required_skill_count = len(job_comparison.get("matched_skills", [])) + len(
+        job_comparison.get("missing_skills", [])
+    )
+
+    met_count = int(critical_requirements.get("met_count", 0) or 0)
+    unclear_count = int(critical_requirements.get("unclear_count", 0) or 0)
+    missing_count = int(critical_requirements.get("missing_count", 0) or 0)
+    critical_count = met_count + unclear_count + missing_count
+
+    resume_detail_points = min(25.0, (resume_word_count / 120) * 25)
+    job_detail_points = min(25.0, (job_word_count / 100) * 25)
+    requirement_points = min(15.0, (required_skill_count / 8) * 15)
+    resume_skill_points = min(10.0, (resume_skill_count / 8) * 10)
+
+    if critical_count:
+        resolved_critical_count = met_count + missing_count
+        critical_certainty_points = (
+            resolved_critical_count / critical_count
+        ) * 25
+        critical_evidence = (
+            f"{resolved_critical_count} of {critical_count} critical "
+            "requirements have a resolved Met or Missing status."
+        )
+    else:
+        critical_certainty_points = 25.0
+        critical_evidence = (
+            "No explicit critical requirements need an Unclear status."
+        )
+
+    confidence_score = round(
+        resume_detail_points
+        + job_detail_points
+        + requirement_points
+        + resume_skill_points
+        + critical_certainty_points,
+        2,
+    )
+
+    if confidence_score >= 80:
+        confidence_level = "High"
+        message_type = "success"
+        headline = (
+            "High confidence: the inputs provide substantial evidence for the "
+            "current analysis."
+        )
+        next_step = (
+            "Verify the extracted evidence, then use the scores as guidance for "
+            "truthful résumé tailoring and interview preparation."
+        )
+    elif confidence_score >= 60:
+        confidence_level = "Moderate"
+        message_type = "info"
+        headline = (
+            "Moderate confidence: the analysis is useful, but some evidence "
+            "limitations should be reviewed."
+        )
+        next_step = (
+            "Review the listed limitations and resolve unclear evidence before "
+            "making an application decision."
+        )
+    else:
+        confidence_level = "Low"
+        message_type = "warning"
+        headline = (
+            "Low confidence: treat the match scores as preliminary rather than "
+            "a complete evaluation."
+        )
+        next_step = (
+            "Paste the complete résumé and job posting, then rerun the analysis."
+        )
+
+    limitations = []
+    if resume_word_count < 120:
+        limitations.append(
+            f"Résumé detail is limited ({resume_word_count} words; 120+ gives "
+            "the analyzer stronger evidence)."
+        )
+    if job_word_count < 100:
+        limitations.append(
+            f"Job-posting detail is limited ({job_word_count} words; 100+ gives "
+            "the analyzer stronger evidence)."
+        )
+    if required_skill_count < 5:
+        limitations.append(
+            f"Only {required_skill_count} required skill(s) were detected, so "
+            "the skill-match sample is small."
+        )
+    if resume_skill_count < 5:
+        limitations.append(
+            f"Only {resume_skill_count} résumé skill(s) were detected."
+        )
+    if unclear_count:
+        limitations.append(
+            f"{unclear_count} critical requirement(s) remain Unclear and need "
+            "human verification."
+        )
+
+    factors = [
+        {
+            "Confidence Factor": "Résumé detail",
+            "Evidence": f"{resume_word_count} words",
+            "Contribution": f"{resume_detail_points:.2f} / 25",
+        },
+        {
+            "Confidence Factor": "Job-posting detail",
+            "Evidence": f"{job_word_count} words",
+            "Contribution": f"{job_detail_points:.2f} / 25",
+        },
+        {
+            "Confidence Factor": "Required-skill sample",
+            "Evidence": f"{required_skill_count} detected",
+            "Contribution": f"{requirement_points:.2f} / 15",
+        },
+        {
+            "Confidence Factor": "Résumé skill evidence",
+            "Evidence": f"{resume_skill_count} detected",
+            "Contribution": f"{resume_skill_points:.2f} / 10",
+        },
+        {
+            "Confidence Factor": "Critical-evidence certainty",
+            "Evidence": critical_evidence,
+            "Contribution": f"{critical_certainty_points:.2f} / 25",
+        },
+    ]
+
+    return {
+        "confidence_level": confidence_level,
+        "confidence_score": confidence_score,
+        "message_type": message_type,
+        "headline": headline,
+        "factors": factors,
+        "limitations": limitations,
+        "next_step": next_step,
+        "disclaimer": (
+            "Analysis Confidence measures evidence completeness and certainty. "
+            "It does not measure candidate quality or guarantee an employer "
+            "decision."
+        ),
+    }
+
+
 def compare_resume_to_job(resume_skills, job_required_skills):
     matched_skills = []
     missing_skills = []
