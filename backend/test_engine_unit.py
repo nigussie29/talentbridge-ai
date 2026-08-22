@@ -13,6 +13,7 @@ from career_engine import (
     compare_resume_to_job,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
+    generate_match_action_summary,
     generate_progress_tracker,
     generate_resume_improvement_plan,
     prioritize_missing_skills,
@@ -22,6 +23,49 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_match_action_summary_prioritizes_qa_gaps(self):
+        summary = generate_match_action_summary(
+            {
+                "matched_skills": ["SQL", "Data Validation", "ETL Testing"],
+                "missing_skills": [
+                    "Data Engineering",
+                    "Databricks",
+                    "Test Automation",
+                    "Git",
+                ],
+                "match_score": 42.86,
+            },
+            target_career="QA Analyst / Data Quality Analyst",
+        )
+
+        self.assertEqual(summary["fit_level"], "Low Skill Match")
+        self.assertEqual(
+            summary["priority_gaps"],
+            ["Databricks", "Test Automation", "Data Engineering"],
+        )
+        self.assertIn("truthful evidence", summary["next_action"])
+
+    def test_match_action_summary_handles_complete_match(self):
+        summary = generate_match_action_summary(
+            {
+                "matched_skills": ["Python", "SQL"],
+                "missing_skills": [],
+                "match_score": 100.0,
+            }
+        )
+
+        self.assertEqual(summary["fit_level"], "Strong Skill Match")
+        self.assertEqual(summary["priority_gaps"], [])
+        self.assertIn("interview stories", summary["next_action"])
+
+    def test_match_action_summary_requires_job_information(self):
+        summary = generate_match_action_summary(
+            {"matched_skills": [], "missing_skills": [], "match_score": 0.0}
+        )
+
+        self.assertEqual(summary["fit_level"], "Insufficient Job Information")
+        self.assertIn("detailed job description", summary["next_action"])
+
     def test_improvement_score_is_a_partial_gap_projection(self):
         result = calculate_improvement_score(
             {
