@@ -564,6 +564,374 @@ ANALYSIS_INSTRUCTION_PHRASES = (
 )
 
 
+CRITICAL_TECHNOLOGY_SKILLS = (
+    "Python",
+    "SQL",
+    "Power BI",
+    "Excel",
+    "ETL",
+    "Cloud",
+    "Machine Learning",
+    "FastAPI",
+    "REST APIs",
+    "API Testing",
+    "Pandas",
+    "PySpark",
+    "Docker",
+    "Kubernetes",
+    "Apache Spark",
+    "Databricks",
+    "Linux",
+    "JavaScript",
+)
+
+
+CERTIFICATION_PATTERNS = {
+    "ISTQB certification": r"\bistqb\b",
+    "CSTE certification": r"\bcste\b",
+    "CSQA certification": r"\bcsqa\b",
+    "PMP certification": r"\bpmp\b",
+    "CISSP certification": r"\bcissp\b",
+    "Security+ certification": r"\bsecurity\s*\+\b",
+    "AWS certification": r"\baws\s+certif(?:ied|ication)\b",
+    "Azure certification": r"\bazure\s+certif(?:ied|ication)\b",
+}
+
+
+EDUCATION_LEVELS = {
+    "High school diploma": (1, r"\b(?:high school diploma|ged)\b"),
+    "Associate degree": (
+        2,
+        r"\b(?:associate(?:'s)?\s+degree|associate\s+of\s+(?:science|arts))\b",
+    ),
+    "Bachelor's degree": (
+        3,
+        r"\b(?:bachelor(?:'s)?\s+degree|bachelor\s+of\s+(?:science|arts))\b",
+    ),
+    "Master's degree": (
+        4,
+        r"\b(?:master(?:'s)?\s+degree|master\s+of\s+(?:science|arts))\b",
+    ),
+    "Doctoral degree": (5, r"\b(?:doctoral degree|doctorate|ph\.?d\.?)\b"),
+}
+
+
+def _requirement_sentences(text):
+    """Split prose and numbered lists into compact requirement statements."""
+    return [
+        sentence.strip(" -\t")
+        for sentence in re.split(r"(?<=[.!?])\s+|[\r\n]+", str(text or ""))
+        if sentence.strip(" -\t")
+    ]
+
+
+def _is_optional_requirement(text):
+    return re.search(
+        r"\b(?:preferred|nice to have|bonus|desirable|optional)\b",
+        _normalize_skill_text(text),
+    ) is not None
+
+
+def _experience_years(text):
+    return [
+        int(match.group("years"))
+        for match in re.finditer(
+            r"(?P<years>\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+"
+            r"(?:of\s+)?experience",
+            _normalize_skill_text(text),
+        )
+    ]
+
+
+def _highest_education_level(text):
+    normalized_text = _normalize_skill_text(text)
+    matches = [
+        (level, label)
+        for label, (level, pattern) in EDUCATION_LEVELS.items()
+        if re.search(pattern, normalized_text)
+    ]
+    return max(matches, default=(0, None))
+
+
+def _required_education_level(text):
+    matches = []
+    for sentence in _requirement_sentences(text):
+        if _is_optional_requirement(sentence):
+            continue
+        level, label = _highest_education_level(sentence)
+        if label:
+            matches.append((level, label))
+    return max(matches, default=(0, None))
+
+
+def _seniority_level(text):
+    normalized_text = _normalize_skill_text(text)
+    seniority_patterns = (
+        (
+            4,
+            "Principal",
+            r"\bprincipal(?:\s+level)?\s+(?:engineer|analyst|scientist|"
+            r"developer|architect|consultant|role|candidate)\b",
+        ),
+        (
+            3,
+            "Senior",
+            r"\bsenior(?:\s+level)?(?:\s+(?:engineer|analyst|scientist|"
+            r"developer|architect|consultant|role|candidate))?\b",
+        ),
+        (2, "Mid-level", r"\b(?:mid\s+level|intermediate)\b"),
+        (1, "Entry-level", r"\b(?:entry\s+level|junior)\b"),
+    )
+    for level, label, pattern in seniority_patterns:
+        if re.search(pattern, normalized_text):
+            return level, label
+    return 0, None
+
+
+def _critical_job_technology_skills(job_description_text):
+    explicit_skills = set()
+    requirement_markers = re.compile(
+        r"\b(?:required|must|minimum|strong|advanced|hands on|proficien\w*|"
+        r"experience\s+(?:with|using|testing|designing|developing)|skills?)\b"
+    )
+
+    for sentence in _requirement_sentences(job_description_text):
+        normalized_sentence = _normalize_skill_text(sentence)
+        if (
+            _is_optional_requirement(sentence)
+            or requirement_markers.search(normalized_sentence) is None
+        ):
+            continue
+        explicit_skills.update(detect_skills(sentence))
+
+    return explicit_skills
+
+
+def evaluate_critical_requirements(resume_text, job_description_text):
+    """Compare explicit non-score job requirements with résumé evidence.
+
+    The result intentionally uses ``Unclear`` whenever the text does not prove
+    a claim. This keeps the check useful without inventing experience.
+    """
+    resume_text = str(resume_text or "").strip()
+    job_description_text = str(job_description_text or "").strip()
+    normalized_resume = _normalize_skill_text(resume_text)
+    resume_skills = set(detect_skills(resume_text))
+    job_skills = set(detect_skills(job_description_text))
+    critical_job_skills = _critical_job_technology_skills(job_description_text)
+    resume_years = _experience_years(resume_text)
+    requirements = []
+
+    job_level, job_level_label = _seniority_level(job_description_text)
+    resume_level, resume_level_label = _seniority_level(resume_text)
+    if job_level_label:
+        if resume_level >= job_level:
+            status = "Met"
+            evidence = f"Résumé explicitly indicates {resume_level_label} level."
+        elif resume_level:
+            status = "Missing"
+            evidence = (
+                f"Résumé indicates {resume_level_label} level, below the stated "
+                f"{job_level_label} level."
+            )
+        else:
+            status = "Unclear"
+            evidence = "No explicit seniority level was found in the résumé."
+        requirements.append(
+            {
+                "category": "Seniority",
+                "requirement": f"{job_level_label}-level candidate",
+                "status": status,
+                "evidence": evidence,
+            }
+        )
+
+    experience_pattern = re.compile(
+        r"(?P<years>\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+"
+        r"(?:of\s+)?experience",
+        re.IGNORECASE,
+    )
+    for sentence in _requirement_sentences(job_description_text):
+        if _is_optional_requirement(sentence):
+            continue
+        for match in experience_pattern.finditer(sentence):
+            required_years = int(match.group("years"))
+            related_skills = [
+                skill for skill in detect_skills(sentence) if skill in job_skills
+            ]
+            missing_related_skills = [
+                skill for skill in related_skills if skill not in resume_skills
+            ]
+            leadership_required = re.search(
+                r"\b(?:lead|leading|leadership|manage|managing)\b",
+                _normalize_skill_text(sentence),
+            ) is not None
+            leadership_evidence = re.search(
+                r"\b(?:led|lead|leading|managed|manager|supervised|oversaw|directed)\b",
+                normalized_resume,
+            ) is not None
+
+            if not resume_years:
+                status = "Unclear"
+                evidence = "The résumé does not state a total number of experience years."
+            elif max(resume_years) < required_years:
+                status = "Missing"
+                evidence = (
+                    f"Résumé states up to {max(resume_years)} years; the job "
+                    f"requires {required_years}+ years."
+                )
+            elif leadership_required and not leadership_evidence:
+                status = "Unclear"
+                evidence = (
+                    f"Résumé states {max(resume_years)}+ years, but leadership "
+                    "duration is not explicit."
+                )
+            elif missing_related_skills:
+                status = "Unclear"
+                evidence = (
+                    f"Résumé states {max(resume_years)}+ years, but the duration "
+                    "is not clearly tied to: "
+                    + ", ".join(missing_related_skills[:3])
+                    + "."
+                )
+            else:
+                status = "Met"
+                evidence = (
+                    f"Résumé explicitly states {max(resume_years)}+ years of "
+                    "experience."
+                )
+
+            requirement_label = f"{required_years}+ years of experience"
+            if leadership_required:
+                requirement_label += " in a leadership capacity"
+            elif related_skills:
+                requirement_label += " with " + ", ".join(related_skills[:3])
+            requirements.append(
+                {
+                    "category": "Experience",
+                    "requirement": requirement_label,
+                    "status": status,
+                    "evidence": evidence,
+                }
+            )
+
+    job_education_level, job_education_label = _required_education_level(
+        job_description_text
+    )
+    resume_education_level, resume_education_label = _highest_education_level(
+        resume_text
+    )
+    if job_education_label:
+        if resume_education_level >= job_education_level:
+            status = "Met"
+            evidence = f"Résumé lists {resume_education_label}."
+        elif resume_education_level:
+            status = "Missing"
+            evidence = (
+                f"Résumé lists {resume_education_label}, below the stated "
+                f"{job_education_label}."
+            )
+        else:
+            status = "Unclear"
+            evidence = "No degree level was detected in the résumé text."
+        requirements.append(
+            {
+                "category": "Education",
+                "requirement": job_education_label,
+                "status": status,
+                "evidence": evidence,
+            }
+        )
+
+    certification_found = False
+    for certification_label, pattern in CERTIFICATION_PATTERNS.items():
+        certification_required = any(
+            re.search(pattern, _normalize_skill_text(sentence))
+            and not _is_optional_requirement(sentence)
+            for sentence in _requirement_sentences(job_description_text)
+        )
+        if certification_required:
+            certification_found = True
+            certification_met = re.search(pattern, normalized_resume) is not None
+            requirements.append(
+                {
+                    "category": "Certification",
+                    "requirement": certification_label,
+                    "status": "Met" if certification_met else "Missing",
+                    "evidence": (
+                        "Exact certification name detected in the résumé."
+                        if certification_met
+                        else "Exact certification name not detected in the résumé."
+                    ),
+                }
+            )
+
+    generic_certification_required = any(
+        re.search(
+            r"\b(?:certification|certified|professional license)\b",
+            _normalize_skill_text(sentence),
+        )
+        and not _is_optional_requirement(sentence)
+        for sentence in _requirement_sentences(job_description_text)
+    )
+    if not certification_found and generic_certification_required:
+        requirements.append(
+            {
+                "category": "Certification",
+                "requirement": "Job-specific certification or license",
+                "status": "Unclear",
+                "evidence": (
+                    "The posting mentions certification, but the exact credential "
+                    "could not be compared automatically."
+                ),
+            }
+        )
+
+    for skill in CRITICAL_TECHNOLOGY_SKILLS:
+        if skill not in critical_job_skills:
+            continue
+        skill_met = skill in resume_skills
+        requirements.append(
+            {
+                "category": "Technology",
+                "requirement": skill,
+                "status": "Met" if skill_met else "Missing",
+                "evidence": (
+                    "Skill detected in the résumé text."
+                    if skill_met
+                    else "Skill not detected in the résumé text."
+                ),
+            }
+        )
+
+    status_counts = {
+        status: sum(
+            requirement["status"] == status for requirement in requirements
+        )
+        for status in ("Met", "Unclear", "Missing")
+    }
+    if status_counts["Missing"]:
+        overall_status = "Critical gaps detected"
+    elif status_counts["Unclear"]:
+        overall_status = "Evidence needs verification"
+    elif requirements:
+        overall_status = "Critical requirements supported"
+    else:
+        overall_status = "No explicit critical requirements detected"
+
+    return {
+        "requirements": requirements,
+        "met_count": status_counts["Met"],
+        "unclear_count": status_counts["Unclear"],
+        "missing_count": status_counts["Missing"],
+        "overall_status": overall_status,
+        "disclaimer": (
+            "This evidence check uses only the pasted text. Unclear items require "
+            "human verification and should never be treated as proven."
+        ),
+    }
+
+
 def validate_analysis_inputs(resume_text, job_description_text):
     """Assess whether the two inputs are suitable for a meaningful analysis."""
     resume_text = str(resume_text or "").strip()
