@@ -62,6 +62,14 @@ from persistence_service import (
     save_job_analysis,
     save_skill_progress,
 )
+from job_description_storage_service import (
+    JobDescriptionStorageError,
+    delete_job_description,
+    list_job_descriptions,
+    load_job_description,
+    save_job_description,
+    update_job_description,
+)
 from resume_storage_service import (
     MAX_RESUME_BYTES,
     ResumeStorageError,
@@ -127,6 +135,21 @@ def initialize_session_state():
 
     if "resume_text_input" not in st.session_state:
         st.session_state.resume_text_input = ""
+
+    if "job_description_input" not in st.session_state:
+        st.session_state.job_description_input = ""
+
+    if "job_description_title_input" not in st.session_state:
+        st.session_state.job_description_title_input = ""
+
+    if "job_description_company_input" not in st.session_state:
+        st.session_state.job_description_company_input = ""
+
+    if "job_description_source_input" not in st.session_state:
+        st.session_state.job_description_source_input = ""
+
+    if "current_job_description_id" not in st.session_state:
+        st.session_state.current_job_description_id = None
 
     if "uploaded_resume_hash" not in st.session_state:
         st.session_state.uploaded_resume_hash = ""
@@ -246,6 +269,11 @@ def logout_button():
             st.session_state.match_result = None
             st.session_state.current_analysis_id = None
             st.session_state.resume_text_input = ""
+            st.session_state.job_description_input = ""
+            st.session_state.job_description_title_input = ""
+            st.session_state.job_description_company_input = ""
+            st.session_state.job_description_source_input = ""
+            st.session_state.current_job_description_id = None
             st.session_state.uploaded_resume_hash = ""
             st.rerun()
 
@@ -630,6 +658,112 @@ with tab1:
                         except Exception:
                             st.error("The saved resume could not be deleted.")
 
+    with st.expander("My Saved Job Descriptions"):
+        try:
+            saved_job_descriptions = list_job_descriptions(
+                st.session_state.auth_client,
+                st.session_state.user_id,
+            )
+        except Exception:
+            saved_job_descriptions = []
+            st.warning(
+                "Saved job descriptions are temporarily unavailable. "
+                "The Phase 4N Supabase setup may still be required."
+            )
+
+        if not saved_job_descriptions:
+            st.caption("No saved job descriptions yet.")
+        else:
+            job_description_options = {
+                (
+                    f"{item['job_title']}"
+                    f"{' — ' + item['company_name'] if item.get('company_name') else ''}"
+                    f" — {item['updated_at'][:10]}"
+                ): item["id"]
+                for item in saved_job_descriptions
+            }
+            selected_job_description = st.selectbox(
+                "Choose a saved job description",
+                list(job_description_options),
+                key="saved_job_description_selector",
+            )
+            selected_job_description_id = job_description_options[
+                selected_job_description
+            ]
+            job_action_col1, job_action_col2 = st.columns(2)
+
+            with job_action_col1:
+                if st.button("Use Saved Job Description"):
+                    try:
+                        saved_job = load_job_description(
+                            st.session_state.auth_client,
+                            st.session_state.user_id,
+                            selected_job_description_id,
+                        )
+                        st.session_state.job_description_input = saved_job[
+                            "description_text"
+                        ]
+                        st.session_state.job_description_title_input = saved_job[
+                            "job_title"
+                        ]
+                        st.session_state.job_description_company_input = saved_job.get(
+                            "company_name",
+                            "",
+                        )
+                        st.session_state.job_description_source_input = saved_job.get(
+                            "source_url",
+                            "",
+                        )
+                        st.session_state.current_job_description_id = saved_job["id"]
+                        st.session_state.data_management_notice = (
+                            f"{saved_job['job_title']} loaded into Target Job Description."
+                        )
+                        st.rerun()
+                    except JobDescriptionStorageError as error:
+                        st.error(str(error))
+                    except Exception:
+                        st.error("The saved job description could not be loaded.")
+
+            with job_action_col2:
+                confirm_job_description_delete = st.checkbox(
+                    "Confirm permanent job-description deletion",
+                    key=(
+                        "confirm_job_description_delete_"
+                        f"{selected_job_description_id}"
+                    ),
+                )
+                if st.button("Delete Saved Job Description", type="secondary"):
+                    if not confirm_job_description_delete:
+                        st.warning(
+                            "Confirm deletion before removing this job description."
+                        )
+                    else:
+                        try:
+                            delete_job_description(
+                                st.session_state.auth_client,
+                                st.session_state.user_id,
+                                selected_job_description_id,
+                            )
+                            if (
+                                st.session_state.current_job_description_id
+                                == selected_job_description_id
+                            ):
+                                st.session_state.current_job_description_id = None
+                                st.session_state.job_description_input = ""
+                                st.session_state.job_description_title_input = ""
+                                st.session_state.job_description_company_input = ""
+                                st.session_state.job_description_source_input = ""
+                            st.session_state.data_management_notice = (
+                                "Saved job description permanently deleted."
+                            )
+                            st.rerun()
+                        except JobDescriptionStorageError as error:
+                            st.error(str(error))
+                        except Exception:
+                            st.error(
+                                "The saved job description could not be deleted."
+                            )
+
     with st.expander("My Saved Analyses"):
         try:
             saved_analyses = list_job_analyses(
@@ -665,9 +799,33 @@ with tab1:
                             st.session_state.user_id,
                             selected_analysis_id,
                         )
-                        st.session_state.match_result = saved_record["result_data"]
+                        loaded_result = saved_record["result_data"]
+                        st.session_state.match_result = loaded_result
                         st.session_state.current_analysis_id = saved_record["id"]
-                        st.success("Saved analysis loaded.")
+                        st.session_state.resume_text_input = loaded_result.get(
+                            "resume_text",
+                            "",
+                        )
+                        st.session_state.job_description_input = loaded_result.get(
+                            "job_description_text",
+                            "",
+                        )
+                        st.session_state.job_description_title_input = loaded_result.get(
+                            "job_title",
+                            loaded_result.get("target_career", "Saved Job"),
+                        )
+                        st.session_state.job_description_company_input = loaded_result.get(
+                            "company_name",
+                            "",
+                        )
+                        st.session_state.job_description_source_input = loaded_result.get(
+                            "source_url",
+                            "",
+                        )
+                        st.session_state.current_job_description_id = None
+                        st.session_state.data_management_notice = (
+                            "Saved analysis and both reusable inputs loaded."
+                        )
                         st.rerun()
                     except PersistenceError as error:
                         st.error(str(error))
@@ -764,11 +922,91 @@ with input_col1:
 with input_col2:
     st.subheader("Target Job Description")
 
+    job_detail_col1, job_detail_col2 = st.columns(2)
+    with job_detail_col1:
+        job_title = st.text_input(
+            "Job title",
+            placeholder="Example: Senior Data Analyst",
+            key="job_description_title_input",
+        )
+    with job_detail_col2:
+        company_name = st.text_input(
+            "Company (optional)",
+            placeholder="Example: ABC Company",
+            key="job_description_company_input",
+        )
+
+    source_url = st.text_input(
+        "Job posting URL (optional)",
+        placeholder="https://...",
+        key="job_description_source_input",
+    )
+
     job_description_text = st.text_area(
         "Paste the job description here",
         height=355,
-        placeholder="Paste the job posting or job requirements here..."
+        placeholder="Paste the job posting or job requirements here...",
+        key="job_description_input",
     )
+
+    save_job_col, update_job_col = st.columns(2)
+    with save_job_col:
+        if st.button(
+            "Save Job Description Privately",
+            key="save_private_job_description_button",
+        ):
+            try:
+                saved_job = save_job_description(
+                    st.session_state.auth_client,
+                    st.session_state.user_id,
+                    job_title,
+                    company_name,
+                    source_url,
+                    job_description_text,
+                )
+                st.session_state.current_job_description_id = saved_job["id"]
+                if saved_job["already_exists"]:
+                    st.session_state.data_management_notice = (
+                        "This job description is already in your private library."
+                    )
+                else:
+                    st.session_state.data_management_notice = (
+                        "Job description saved to your private library."
+                    )
+                st.rerun()
+            except JobDescriptionStorageError as error:
+                st.error(str(error))
+            except Exception:
+                st.error(
+                    "The job description could not be saved. "
+                    "Confirm that the Phase 4N Supabase SQL has been applied."
+                )
+
+    with update_job_col:
+        update_disabled = st.session_state.current_job_description_id is None
+        if st.button(
+            "Update Loaded Job Description",
+            key="update_private_job_description_button",
+            disabled=update_disabled,
+        ):
+            try:
+                update_job_description(
+                    st.session_state.auth_client,
+                    st.session_state.user_id,
+                    st.session_state.current_job_description_id,
+                    job_title,
+                    company_name,
+                    source_url,
+                    job_description_text,
+                )
+                st.session_state.data_management_notice = (
+                    "Saved job description updated."
+                )
+                st.rerun()
+            except JobDescriptionStorageError as error:
+                st.error(str(error))
+            except Exception:
+                st.error("The saved job description could not be updated.")
 
     if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
         input_quality = validate_analysis_inputs(
@@ -859,6 +1097,9 @@ with input_col2:
                 "mode_report_text": mode_report_text,
                 "user_mode": user_mode,
                 "target_career": target_career,
+                "job_title": job_title,
+                "company_name": company_name,
+                "source_url": source_url,
                 "input_quality": input_quality,
             }
 

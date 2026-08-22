@@ -123,13 +123,27 @@ reuse them in later sessions. Each file is stored inside its owner's folder,
 protected by row-level security, limited to PDF format and 5 MB, and recorded in
 private resume metadata. Duplicate uploads are detected by file hash.
 
+### Reusable Input Library
+
+Signed-in users can save job descriptions privately with a job title, optional
+company name, and optional source URL. A saved job can be selected later and
+loaded back into the comparison form without copying and pasting it again.
+Loaded records can be updated or permanently deleted by their owner.
+
+Saved analyses also restore their original résumé text and job-description text
+into the input form. This makes it possible to rerun a previous comparison,
+change the target career, or edit one input without rebuilding the analysis from
+scratch. Job-description records are protected by Supabase row-level security,
+and duplicate descriptions are detected by content hash.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an
 explicit confirmation. Analysis deletion also removes its associated skill
 progress, while resume deletion removes both the private Storage object and its
-metadata. Ownership filters and Supabase row-level security prevent one user
-from deleting another user's records.
+metadata. Saved job descriptions use the same explicit confirmation pattern.
+Ownership filters and Supabase row-level security prevent one user from reading,
+updating, or deleting another user's records.
 
 ### Resume Skill Analyzer
 
@@ -605,6 +619,7 @@ talentbridge-ai/
 ├── backend/
 │   ├── auth_service.py
 │   ├── career_engine.py
+│   ├── job_description_storage_service.py
 │   ├── persistence_service.py
 │   ├── resume_storage_service.py
 │   └── test_*.py
@@ -617,6 +632,7 @@ talentbridge-ai/
 ├── supabase/
 │   ├── schema.sql
 │   ├── persistence.sql
+│   ├── job_description_storage.sql
 │   └── resume_storage.sql
 │
 ├── notebooks/
