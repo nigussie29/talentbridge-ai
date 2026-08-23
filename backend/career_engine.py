@@ -1005,12 +1005,50 @@ def generate_evidence_traceability(
     }
 
 
+def _looks_like_bare_skill_list(resume_evidence):
+    """Return True when an excerpt names skills without résumé evidence."""
+    normalized_evidence = _normalize_skill_text(resume_evidence)
+    detected_skills = detect_skills(resume_evidence)
+    has_action = any(
+        _contains_skill_keyword(normalized_evidence, word)
+        for word in REQUIREMENT_EVIDENCE_ACTION_WORDS
+    )
+    has_outcome = any(
+        _contains_skill_keyword(normalized_evidence, word)
+        for word in REQUIREMENT_EVIDENCE_OUTCOME_WORDS
+    ) or re.search(r"\b\d+(?:[.,]\d+)?%?\b", normalized_evidence) is not None
+    has_explicit_context = re.search(
+        r"\b(?:experience|worked with|hands on|project|projects|portfolio|"
+        r"responsible for|supported)\b",
+        normalized_evidence,
+    ) is not None
+
+    if has_action or has_outcome or has_explicit_context:
+        return False
+
+    has_skill_heading = re.match(
+        r"^(?:technical |core )?(?:skills?|technologies|tools|competencies)\b",
+        normalized_evidence,
+    ) is not None
+    has_comma_separated_skills = (
+        len(detected_skills) >= 3 and str(resume_evidence).count(",") >= 2
+    )
+    return has_skill_heading or has_comma_separated_skills
+
+
 def _requirement_evidence_level(resume_evidence):
     """Classify one exact résumé excerpt without inferring missing facts."""
     if not resume_evidence:
         return (
             "Missing",
             "No supporting résumé excerpt was detected for this requirement.",
+        )
+
+    if _looks_like_bare_skill_list(resume_evidence):
+        return (
+            "Mention Only",
+            "The skill is listed or named without an action, project, experience "
+            "example, or outcome.",
         )
 
     normalized_evidence = _normalize_skill_text(resume_evidence)

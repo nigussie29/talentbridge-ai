@@ -122,6 +122,22 @@ class TalentBridgeEngineTests(unittest.TestCase):
             "Used SQL to reconcile 50,000 records.",
         )
 
+    def test_requirement_evidence_strength_does_not_overrate_skill_list(self):
+        result = analyze_requirement_evidence_strength(
+            (
+                "SKILLS\n"
+                "Python, SQL, Power BI, Excel, Databricks, data analysis, "
+                "data validation, communication."
+            ),
+            "Databricks is required.",
+        )
+
+        row = result["rows"][0]
+        self.assertEqual(row["Requirement"], "Databricks")
+        self.assertEqual(row["Evidence Strength"], "Mention Only")
+        self.assertIn("Databricks", row["Résumé Evidence"])
+        self.assertEqual(result["mention_only_count"], 1)
+
     def test_requirement_evidence_strength_excludes_preferred_skills(self):
         result = analyze_requirement_evidence_strength(
             "Built Python data tools and used Kubernetes.",
