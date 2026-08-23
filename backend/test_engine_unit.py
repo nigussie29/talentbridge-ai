@@ -15,6 +15,7 @@ from career_engine import (
     calculate_target_career_match,
     classify_job_skills,
     compare_resume_to_job,
+    compare_saved_analyses,
     evaluate_critical_requirements,
     generate_application_decision,
     generate_evidence_traceability,
@@ -32,6 +33,84 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_saved_analysis_comparison_shows_score_and_evidence_changes(self):
+        job_description = (
+            "Required skills: Python, SQL, Power BI, and Databricks."
+        )
+        before = {
+            "id": "before-1",
+            "target_career": "Data Analyst",
+            "created_at": "2026-08-20T10:00:00Z",
+            "result_data": {
+                "target_career": "Data Analyst",
+                "job_title": "Data Analyst",
+                "resume_text": (
+                    "Built Python reports for weekly operations.\n"
+                    "Skills: SQL, Power BI."
+                ),
+                "job_description_text": job_description,
+            },
+        }
+        after = {
+            "id": "after-1",
+            "target_career": "Data Analyst",
+            "created_at": "2026-08-23T10:00:00Z",
+            "result_data": {
+                "target_career": "Data Analyst",
+                "job_title": "Data Analyst",
+                "resume_text": (
+                    "Built Python reports for weekly operations.\n"
+                    "Used SQL to reconcile reporting records.\n"
+                    "Created Power BI dashboards for managers.\n"
+                    "Built Databricks pipelines for validated data loads."
+                ),
+                "job_description_text": job_description,
+            },
+        }
+
+        result = compare_saved_analyses(before, after)
+
+        self.assertEqual(
+            result["score_deltas"]["job_description_match"],
+            25.0,
+        )
+        self.assertEqual(result["newly_matched_skills"], ["Databricks"])
+        self.assertEqual(result["no_longer_matched_skills"], [])
+        self.assertEqual(result["remaining_gaps"], [])
+        self.assertTrue(result["same_target_career"])
+        self.assertTrue(result["same_job_description"])
+        self.assertTrue(
+            any(
+                change.startswith("Databricks:")
+                for change in result["evidence_improved"]
+            )
+        )
+
+    def test_saved_analysis_comparison_flags_changed_benchmarks(self):
+        before = {
+            "id": "before-1",
+            "target_career": "Data Analyst",
+            "result_data": {
+                "target_career": "Data Analyst",
+                "resume_text": "Built Python reports.",
+                "job_description_text": "Python is required.",
+            },
+        }
+        after = {
+            "id": "after-1",
+            "target_career": "AI Engineer",
+            "result_data": {
+                "target_career": "AI Engineer",
+                "resume_text": "Built Python machine learning models.",
+                "job_description_text": "Python and machine learning are required.",
+            },
+        }
+
+        result = compare_saved_analyses(before, after)
+
+        self.assertFalse(result["same_target_career"])
+        self.assertFalse(result["same_job_description"])
+
     def test_evidence_adjusted_requirement_score_weights_all_levels(self):
         strength = analyze_requirement_evidence_strength(
             (
