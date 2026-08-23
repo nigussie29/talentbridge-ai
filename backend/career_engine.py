@@ -2624,6 +2624,13 @@ SAVED_ANALYSIS_EVIDENCE_RANKS = {
     "Strong Evidence": 3,
 }
 
+SAVED_ANALYSIS_PROGRESS_METRICS = (
+    ("Job Description Match", "job_description_match"),
+    ("Semantic Match", "semantic_match"),
+    ("Target Career Match", "target_career_match"),
+    ("Evidence-Adjusted Score", "evidence_adjusted_score"),
+)
+
 
 def _saved_analysis_snapshot(record):
     """Normalize one saved analysis using the current TalentBridge rules."""
@@ -2799,6 +2806,132 @@ def compare_saved_analyses(before_record, after_record):
             "This comparison uses the current TalentBridge rules on saved "
             "inputs. It measures résumé evidence changes, not verified skill "
             "growth or an employer decision."
+        ),
+    }
+
+
+def build_saved_analysis_progress_dashboard(records, target_career=None):
+    """Build chronological progress groups from private saved analyses.
+
+    Analyses are comparable only when they use the same target career and the
+    same normalized job description. Mixed postings are deliberately kept in
+    separate groups so a score change is not mistaken for resume progress.
+    """
+    snapshots = [_saved_analysis_snapshot(record) for record in records]
+    if target_career:
+        snapshots = [
+            snapshot
+            for snapshot in snapshots
+            if snapshot["target_career"] == target_career
+        ]
+    snapshots.sort(key=lambda item: (item["created_at"], item["id"]))
+
+    grouped_snapshots = {}
+    records_without_job_text = 0
+    for snapshot in snapshots:
+        job_key = _normalize_skill_text(snapshot["job_description_text"])
+        if not job_key:
+            records_without_job_text += 1
+            continue
+        grouped_snapshots.setdefault(job_key, []).append(snapshot)
+
+    comparable_groups = []
+    singleton_count = 0
+    for job_snapshots in grouped_snapshots.values():
+        if len(job_snapshots) < 2:
+            singleton_count += len(job_snapshots)
+            continue
+
+        earliest = job_snapshots[0]
+        latest = job_snapshots[-1]
+        metric_rows = []
+        for label, key in SAVED_ANALYSIS_PROGRESS_METRICS:
+            delta = round(latest[key] - earliest[key], 2)
+            metric_rows.append(
+                {
+                    "Metric": label,
+                    "Earliest": f"{earliest[key]:.2f}%",
+                    "Latest": f"{latest[key]:.2f}%",
+                    "Change": f"{delta:+.2f} points",
+                    "latest_value": latest[key],
+                    "delta_value": delta,
+                }
+            )
+
+        trend_rows = []
+        for index, snapshot in enumerate(job_snapshots, start=1):
+            saved_at = snapshot["created_at"][:16].replace("T", " ")
+            trend_rows.append(
+                {
+                    "Saved At": saved_at or f"Analysis {index}",
+                    **{
+                        label: snapshot[key]
+                        for label, key in SAVED_ANALYSIS_PROGRESS_METRICS
+                    },
+                }
+            )
+
+        earliest_matched = set(earliest["matched_skills"])
+        latest_matched = set(latest["matched_skills"])
+        job_title = latest["job_title"] or earliest["job_title"]
+        date_start = earliest["created_at"][:10] or "unknown date"
+        date_end = latest["created_at"][:10] or "unknown date"
+        comparable_groups.append(
+            {
+                "job_title": job_title,
+                "label": (
+                    f"{job_title} — {len(job_snapshots)} analyses — "
+                    f"{date_start} to {date_end}"
+                ),
+                "analysis_count": len(job_snapshots),
+                "earliest": earliest,
+                "latest": latest,
+                "metric_rows": metric_rows,
+                "trend_rows": trend_rows,
+                "skills_gained": sorted(latest_matched - earliest_matched),
+                "skills_no_longer_matched": sorted(
+                    earliest_matched - latest_matched
+                ),
+                "remaining_gaps": sorted(latest["missing_skills"]),
+            }
+        )
+
+    for index, group in enumerate(comparable_groups, start=1):
+        group["key"] = f"job-history-{index}"
+
+    excluded_count = singleton_count + records_without_job_text
+    warnings = []
+    if len(grouped_snapshots) > 1:
+        warnings.append(
+            f"Saved analyses contain {len(grouped_snapshots)} different job "
+            "descriptions. Their histories are shown separately."
+        )
+    if excluded_count:
+        warnings.append(
+            f"{excluded_count} saved analysis record(s) are not yet comparable "
+            "because the same job description has not been analyzed twice."
+        )
+    if snapshots and not comparable_groups:
+        warnings.append(
+            "No comparable history is available yet. Analyze the same job "
+            "description at least twice to create a progress trend."
+        )
+
+    return {
+        "target_career": target_career or "",
+        "record_count": len(snapshots),
+        "distinct_job_count": len(grouped_snapshots),
+        "comparable_record_count": sum(
+            group["analysis_count"] for group in comparable_groups
+        ),
+        "excluded_record_count": excluded_count,
+        "groups": comparable_groups,
+        "warnings": warnings,
+        "disclaimer": (
+            "This dashboard re-evaluates private saved inputs with the current "
+            "TalentBridge rules. Trends measure resume evidence changes for the "
+            "same posting; they do not verify skill growth or predict an employer "
+            "decision."
         ),
     }
 
