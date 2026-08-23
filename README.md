@@ -151,6 +151,21 @@ changed between the two analyses, because those changes affect how score
 differences should be interpreted. This feature uses the existing private saved
 analysis records and requires no additional database migration.
 
+### Saved Analysis Progress Dashboard
+
+Signed-in users can turn comparable saved analyses into a chronological
+progress dashboard. After filtering by target career, TalentBridge groups
+records by normalized job description and charts Job Description Match,
+Semantic Match, Target Career Match, and Evidence-Adjusted Requirement Score.
+The dashboard also summarizes earliest-to-latest changes, skills gained, skills
+no longer matched, and remaining gaps.
+
+Analyses from different job postings are never combined into one progress
+trend. The app separates distinct postings and warns about single records that
+cannot yet form a comparison. All records remain private to their owner, are
+re-evaluated with the current TalentBridge rules, and require no new database
+migration.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an

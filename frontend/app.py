@@ -21,6 +21,7 @@ from career_engine import (
     compare_resume_to_job,
     classify_job_skills,
     generate_course_plan,
+    build_saved_analysis_progress_dashboard,
     compare_saved_analyses,
     generate_hr_report,
     generate_mode_report,
@@ -161,6 +162,9 @@ def initialize_session_state():
     if "saved_analysis_comparison" not in st.session_state:
         st.session_state.saved_analysis_comparison = None
 
+    if "saved_analysis_progress_dashboard" not in st.session_state:
+        st.session_state.saved_analysis_progress_dashboard = None
+
 
 initialize_session_state()
 st.set_page_config(
@@ -272,6 +276,8 @@ def logout_button():
             st.session_state.auth_client = None
             st.session_state.match_result = None
             st.session_state.current_analysis_id = None
+            st.session_state.saved_analysis_comparison = None
+            st.session_state.saved_analysis_progress_dashboard = None
             st.session_state.resume_text_input = ""
             st.session_state.job_description_input = ""
             st.session_state.job_description_title_input = ""
@@ -773,6 +779,7 @@ with tab1:
             saved_analyses = list_job_analyses(
                 st.session_state.auth_client,
                 st.session_state.user_id,
+                limit=50,
             )
         except Exception:
             saved_analyses = []
@@ -856,6 +863,7 @@ with tab1:
                                 st.session_state.match_result = None
                                 st.session_state.current_analysis_id = None
                             st.session_state.saved_analysis_comparison = None
+                            st.session_state.saved_analysis_progress_dashboard = None
                             st.session_state.data_management_notice = (
                                 "Saved analysis permanently deleted."
                             )
@@ -997,6 +1005,153 @@ with tab1:
                         for change in comparison["evidence_weakened"]:
                             st.write(f"- {change}")
                     st.caption(comparison["disclaimer"])
+
+            st.divider()
+            st.markdown("#### Saved Analysis Progress Dashboard")
+            st.caption(
+                "Track score and skill-evidence changes over time for the same "
+                "target career and job description."
+            )
+            saved_careers = sorted(
+                {
+                    str(item.get("target_career", "")).strip()
+                    for item in saved_analyses
+                    if str(item.get("target_career", "")).strip()
+                }
+            )
+            if saved_careers:
+                default_career_index = (
+                    saved_careers.index(target_career)
+                    if target_career in saved_careers
+                    else 0
+                )
+                progress_target_career = st.selectbox(
+                    "Target career history",
+                    saved_careers,
+                    index=default_career_index,
+                    key="saved_progress_target_career",
+                )
+                if st.button(
+                    "Build Progress Dashboard",
+                    key="build_saved_progress_dashboard",
+                ):
+                    try:
+                        progress_records = []
+                        with st.spinner("Building your private progress history..."):
+                            for item in saved_analyses:
+                                if item.get("target_career") != progress_target_career:
+                                    continue
+                                record = load_job_analysis(
+                                    st.session_state.auth_client,
+                                    st.session_state.user_id,
+                                    item["id"],
+                                )
+                                record["created_at"] = item.get("created_at", "")
+                                progress_records.append(record)
+                            st.session_state.saved_analysis_progress_dashboard = (
+                                build_saved_analysis_progress_dashboard(
+                                    progress_records,
+                                    progress_target_career,
+                                )
+                            )
+                    except PersistenceError as error:
+                        st.error(str(error))
+                    except Exception:
+                        st.error("The saved progress dashboard could not be built.")
+
+                dashboard = st.session_state.saved_analysis_progress_dashboard
+                dashboard_matches_selection = (
+                    dashboard is not None
+                    and dashboard["target_career"] == progress_target_career
+                )
+                if dashboard_matches_selection:
+                    for warning in dashboard["warnings"]:
+                        st.warning(warning)
+
+                    if dashboard["groups"]:
+                        progress_groups = {
+                            group["key"]: group for group in dashboard["groups"]
+                        }
+                        selected_progress_group_key = st.selectbox(
+                            "Comparable job history",
+                            list(progress_groups),
+                            format_func=lambda key: progress_groups[key]["label"],
+                            key="saved_progress_job_group",
+                        )
+                        progress_group = progress_groups[
+                            selected_progress_group_key
+                        ]
+                        earliest_date = (
+                            progress_group["earliest"]["created_at"][:10]
+                            or "unknown date"
+                        )
+                        st.info(
+                            f"{progress_group['analysis_count']} comparable "
+                            f"analyses, beginning {earliest_date}."
+                        )
+
+                        metric_columns = st.columns(4)
+                        for column, metric in zip(
+                            metric_columns,
+                            progress_group["metric_rows"],
+                        ):
+                            with column:
+                                st.metric(
+                                    metric["Metric"],
+                                    f"{metric['latest_value']:.2f}%",
+                                    delta=f"{metric['delta_value']:+.2f} points",
+                                    help=f"Earliest score: {metric['Earliest']}",
+                                )
+
+                        st.line_chart(
+                            progress_group["trend_rows"],
+                            x="Saved At",
+                            y=[
+                                "Job Description Match",
+                                "Semantic Match",
+                                "Target Career Match",
+                                "Evidence-Adjusted Score",
+                            ],
+                            height=340,
+                        )
+                        st.table(
+                            [
+                                {
+                                    key: value
+                                    for key, value in metric.items()
+                                    if key not in {"latest_value", "delta_value"}
+                                }
+                                for metric in progress_group["metric_rows"]
+                            ]
+                        )
+
+                        progress_skill_col1, progress_skill_col2, progress_skill_col3 = (
+                            st.columns(3)
+                        )
+                        with progress_skill_col1:
+                            st.markdown("**Skills Gained**")
+                            render_compact_skill_list(
+                                st,
+                                progress_group["skills_gained"],
+                                "No newly matched skills.",
+                            )
+                        with progress_skill_col2:
+                            st.markdown("**No Longer Matched**")
+                            render_compact_skill_list(
+                                st,
+                                progress_group["skills_no_longer_matched"],
+                                "No matched skills were lost.",
+                            )
+                        with progress_skill_col3:
+                            st.markdown("**Remaining Gaps**")
+                            render_compact_skill_list(
+                                st,
+                                progress_group["remaining_gaps"],
+                                "No required-skill gaps remain.",
+                            )
+                        st.caption(dashboard["disclaimer"])
+            else:
+                st.caption("Save an analysis to begin a progress history.")
 
     st.write(
         "Upload or paste a resume, then paste a job description to compare candidate readiness."

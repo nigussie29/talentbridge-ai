@@ -42,6 +42,23 @@ class PersistenceServiceTests(unittest.TestCase):
         rows = list_job_analyses(client, "user-123")
 
         self.assertEqual(rows, [{"id": "analysis-123"}])
+        client.table.return_value.select.return_value.eq.assert_called_once_with(
+            "user_id",
+            "user-123",
+        )
+        chain.order.assert_called_once_with("created_at", desc=True)
+        chain.order.return_value.limit.assert_called_once_with(10)
+
+    def test_list_job_analyses_caps_progress_history_at_fifty(self):
+        client = MagicMock()
+        chain = client.table.return_value.select.return_value.eq.return_value
+        chain.order.return_value.limit.return_value.execute.return_value = SimpleNamespace(
+            data=[]
+        )
+
+        list_job_analyses(client, "user-123", limit=500)
+
+        chain.order.return_value.limit.assert_called_once_with(50)
 
     def test_load_job_analysis_requires_existing_result(self):
         client = MagicMock()

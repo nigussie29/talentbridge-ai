@@ -14,6 +14,7 @@ from career_engine import (
     calculate_semantic_match_score,
     calculate_target_career_match,
     classify_job_skills,
+    build_saved_analysis_progress_dashboard,
     compare_resume_to_job,
     compare_saved_analyses,
     evaluate_critical_requirements,
@@ -33,6 +34,110 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_saved_progress_dashboard_groups_comparable_job_history(self):
+        shared_job = "Required skills: Python, SQL, Power BI, and Databricks."
+        records = [
+            {
+                "id": "latest",
+                "target_career": "Data Analyst",
+                "created_at": "2026-08-23T10:00:00Z",
+                "result_data": {
+                    "target_career": "Data Analyst",
+                    "job_title": "Senior Data Analyst",
+                    "resume_text": (
+                        "Built Python reports. Used SQL for validation. "
+                        "Created Power BI dashboards. Built Databricks pipelines."
+                    ),
+                    "job_description_text": shared_job,
+                },
+            },
+            {
+                "id": "earliest",
+                "target_career": "Data Analyst",
+                "created_at": "2026-08-20T10:00:00Z",
+                "result_data": {
+                    "target_career": "Data Analyst",
+                    "job_title": "Senior Data Analyst",
+                    "resume_text": "Built Python reports. Skills: SQL, Power BI.",
+                    "job_description_text": shared_job.lower(),
+                },
+            },
+            {
+                "id": "different-job",
+                "target_career": "Data Analyst",
+                "created_at": "2026-08-21T10:00:00Z",
+                "result_data": {
+                    "target_career": "Data Analyst",
+                    "job_title": "Reporting Analyst",
+                    "resume_text": "Built SQL reports.",
+                    "job_description_text": "Required skills: SQL and Excel.",
+                },
+            },
+            {
+                "id": "other-career",
+                "target_career": "AI Engineer",
+                "created_at": "2026-08-22T10:00:00Z",
+                "result_data": {
+                    "target_career": "AI Engineer",
+                    "resume_text": "Built Python models.",
+                    "job_description_text": "Required skills: Python.",
+                },
+            },
+        ]
+
+        result = build_saved_analysis_progress_dashboard(
+            records,
+            "Data Analyst",
+        )
+
+        self.assertEqual(result["record_count"], 3)
+        self.assertEqual(result["distinct_job_count"], 2)
+        self.assertEqual(result["comparable_record_count"], 2)
+        self.assertEqual(result["excluded_record_count"], 1)
+        self.assertEqual(len(result["groups"]), 1)
+        group = result["groups"][0]
+        self.assertEqual(group["earliest"]["id"], "earliest")
+        self.assertEqual(group["latest"]["id"], "latest")
+        self.assertEqual(group["skills_gained"], ["Databricks"])
+        self.assertEqual(group["remaining_gaps"], [])
+        self.assertEqual(len(group["trend_rows"]), 2)
+        self.assertTrue(
+            any("different job descriptions" in item for item in result["warnings"])
+        )
+
+    def test_saved_progress_dashboard_warns_without_comparable_records(self):
+        records = [
+            {
+                "id": "one",
+                "target_career": "Data Analyst",
+                "result_data": {
+                    "target_career": "Data Analyst",
+                    "resume_text": "Built Python reports.",
+                    "job_description_text": "Required skills: Python.",
+                },
+            },
+            {
+                "id": "two",
+                "target_career": "Data Analyst",
+                "result_data": {
+                    "target_career": "Data Analyst",
+                    "resume_text": "Built SQL reports.",
+                    "job_description_text": "Required skills: SQL.",
+                },
+            },
+        ]
+
+        result = build_saved_analysis_progress_dashboard(
+            records,
+            "Data Analyst",
+        )
+
+        self.assertEqual(result["groups"], [])
+        self.assertEqual(result["excluded_record_count"], 2)
+        self.assertTrue(
+            any("No comparable history" in item for item in result["warnings"])
+        )
+
     def test_saved_analysis_comparison_shows_score_and_evidence_changes(self):
         job_description = (
             "Required skills: Python, SQL, Power BI, and Databricks."
