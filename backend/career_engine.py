@@ -2617,6 +2617,192 @@ def calculate_semantic_match_score(resume_text, job_description_text):
     )["semantic_score"]
 
 
+SAVED_ANALYSIS_EVIDENCE_RANKS = {
+    "Missing": 0,
+    "Mention Only": 1,
+    "Moderate Evidence": 2,
+    "Strong Evidence": 3,
+}
+
+
+def _saved_analysis_snapshot(record):
+    """Normalize one saved analysis using the current TalentBridge rules."""
+    result_data = record.get("result_data") or {}
+    resume_text = result_data.get("resume_text", "")
+    job_description_text = result_data.get("job_description_text", "")
+    target_career = (
+        result_data.get("target_career")
+        or record.get("target_career")
+        or ""
+    )
+
+    resume_skills = (
+        analyze_resume_text(resume_text)
+        if resume_text.strip()
+        else list(result_data.get("resume_skills", []))
+    )
+    if job_description_text.strip():
+        job_skill_requirements = classify_job_skills(job_description_text)
+    else:
+        job_skill_requirements = result_data.get(
+            "job_skill_requirements",
+            {
+                "required_skills": result_data.get("job_required_skills", []),
+                "preferred_skills": result_data.get("job_preferred_skills", []),
+            },
+        )
+
+    required_skills = job_skill_requirements.get("required_skills", [])
+    if required_skills or job_description_text.strip():
+        job_comparison = compare_resume_to_job(resume_skills, required_skills)
+    else:
+        job_comparison = result_data.get(
+            "job_comparison",
+            {"matched_skills": [], "missing_skills": [], "match_score": 0},
+        )
+
+    if resume_text.strip() and job_description_text.strip():
+        semantic_score = calculate_semantic_match_details(
+            resume_text,
+            job_description_text,
+        )["semantic_score"]
+        evidence_strength = analyze_requirement_evidence_strength(
+            resume_text,
+            job_description_text,
+            job_skill_requirements,
+        )
+    else:
+        semantic_score = float(result_data.get("semantic_match_score", 0) or 0)
+        evidence_strength = result_data.get(
+            "requirement_evidence_strength",
+            {"rows": []},
+        )
+
+    evidence_score = calculate_evidence_adjusted_requirement_score(
+        evidence_strength
+    )["score"]
+    try:
+        target_career_score = calculate_target_career_match(
+            resume_skills,
+            target_career,
+        )["match_score"]
+    except ValueError:
+        target_career_score = float(
+            result_data.get("target_career_match_score", 0) or 0
+        )
+
+    evidence_levels = {
+        row.get("Requirement", ""): row.get("Evidence Strength", "Missing")
+        for row in evidence_strength.get("rows", [])
+        if row.get("Requirement")
+    }
+    return {
+        "id": str(record.get("id", "")),
+        "created_at": str(record.get("created_at", "")),
+        "target_career": target_career,
+        "job_title": result_data.get("job_title", "") or "Saved Job",
+        "job_description_text": job_description_text,
+        "job_description_match": float(job_comparison.get("match_score", 0) or 0),
+        "semantic_match": float(semantic_score or 0),
+        "target_career_match": float(target_career_score or 0),
+        "evidence_adjusted_score": float(evidence_score or 0),
+        "matched_skills": list(job_comparison.get("matched_skills", [])),
+        "missing_skills": list(job_comparison.get("missing_skills", [])),
+        "evidence_levels": evidence_levels,
+    }
+
+
+def compare_saved_analyses(before_record, after_record):
+    """Compare two private saved analyses without changing either record."""
+    before = _saved_analysis_snapshot(before_record)
+    after = _saved_analysis_snapshot(after_record)
+    metrics = (
+        ("Job Description Match", "job_description_match"),
+        ("Semantic Match", "semantic_match"),
+        ("Target Career Match", "target_career_match"),
+        ("Evidence-Adjusted Score", "evidence_adjusted_score"),
+    )
+    score_rows = []
+    score_deltas = {}
+    for label, key in metrics:
+        delta = round(after[key] - before[key], 2)
+        score_deltas[key] = delta
+        score_rows.append(
+            {
+                "Metric": label,
+                "Before": f"{before[key]:.2f}%",
+                "After": f"{after[key]:.2f}%",
+                "Change": f"{delta:+.2f} points",
+            }
+        )
+
+    before_matched = set(before["matched_skills"])
+    after_matched = set(after["matched_skills"])
+    newly_matched = sorted(after_matched - before_matched)
+    no_longer_matched = sorted(before_matched - after_matched)
+
+    evidence_improved = []
+    evidence_weakened = []
+    shared_requirements = set(before["evidence_levels"]) & set(
+        after["evidence_levels"]
+    )
+    for skill in sorted(shared_requirements):
+        before_level = before["evidence_levels"][skill]
+        after_level = after["evidence_levels"][skill]
+        before_rank = SAVED_ANALYSIS_EVIDENCE_RANKS.get(before_level, 0)
+        after_rank = SAVED_ANALYSIS_EVIDENCE_RANKS.get(after_level, 0)
+        change = f"{skill}: {before_level} → {after_level}"
+        if after_rank > before_rank:
+            evidence_improved.append(change)
+        elif after_rank < before_rank:
+            evidence_weakened.append(change)
+
+    job_delta = score_deltas["job_description_match"]
+    if job_delta > 0:
+        summary = (
+            f"Required-skill match improved by {job_delta:.2f} points."
+        )
+    elif job_delta < 0:
+        summary = (
+            f"Required-skill match decreased by {abs(job_delta):.2f} points."
+        )
+    else:
+        summary = "Required-skill match did not change."
+    if newly_matched:
+        summary += f" Newly matched: {', '.join(newly_matched)}."
+    if after["missing_skills"]:
+        summary += (
+            " Remaining gaps: " + ", ".join(after["missing_skills"]) + "."
+        )
+    else:
+        summary += " No required-skill gaps remain in the after analysis."
+
+    return {
+        "before": before,
+        "after": after,
+        "score_rows": score_rows,
+        "score_deltas": score_deltas,
+        "newly_matched_skills": newly_matched,
+        "no_longer_matched_skills": no_longer_matched,
+        "remaining_gaps": after["missing_skills"],
+        "evidence_improved": evidence_improved,
+        "evidence_weakened": evidence_weakened,
+        "same_target_career": (
+            before["target_career"] == after["target_career"]
+        ),
+        "same_job_description": (
+            _normalize_skill_text(before["job_description_text"])
+            == _normalize_skill_text(after["job_description_text"])
+        ),
+        "summary": summary,
+        "disclaimer": (
+            "This comparison uses the current TalentBridge rules on saved "
+            "inputs. It measures résumé evidence changes, not verified skill "
+            "growth or an employer decision."
+        ),
+    }
+
+
 def generate_score_interpretation(
     job_comparison,
     semantic_match_details,

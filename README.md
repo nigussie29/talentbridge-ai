@@ -136,6 +136,21 @@ change the target career, or edit one input without rebuilding the analysis from
 scratch. Job-description records are protected by Supabase row-level security,
 and duplicate descriptions are detected by content hash.
 
+### Saved Analysis Comparison
+
+Signed-in users with at least two private saved analyses can compare an older
+result with a newer one. The comparison shows before-and-after changes for Job
+Description Match, Semantic Match, Target Career Match, and the
+Evidence-Adjusted Requirement Score. It also identifies newly matched skills,
+skills no longer matched, remaining gaps, and stronger or weaker résumé
+evidence.
+
+For a consistent comparison, both saved inputs are evaluated with the current
+TalentBridge rules. The app warns when the target career or job description
+changed between the two analyses, because those changes affect how score
+differences should be interpreted. This feature uses the existing private saved
+analysis records and requires no additional database migration.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an

@@ -21,6 +21,7 @@ from career_engine import (
     compare_resume_to_job,
     classify_job_skills,
     generate_course_plan,
+    compare_saved_analyses,
     generate_hr_report,
     generate_mode_report,
     generate_progress_tracker,
@@ -156,6 +157,9 @@ def initialize_session_state():
 
     if "data_management_notice" not in st.session_state:
         st.session_state.data_management_notice = ""
+
+    if "saved_analysis_comparison" not in st.session_state:
+        st.session_state.saved_analysis_comparison = None
 
 
 initialize_session_state()
@@ -851,6 +855,7 @@ with tab1:
                             ):
                                 st.session_state.match_result = None
                                 st.session_state.current_analysis_id = None
+                            st.session_state.saved_analysis_comparison = None
                             st.session_state.data_management_notice = (
                                 "Saved analysis permanently deleted."
                             )
@@ -859,6 +864,139 @@ with tab1:
                             st.error(str(error))
                         except Exception:
                             st.error("The saved analysis could not be deleted.")
+
+            st.divider()
+            st.markdown("#### Saved Analysis Comparison")
+            if len(saved_analyses) < 2:
+                st.caption(
+                    "Save at least two analyses to compare progress over time."
+                )
+            else:
+                analysis_metadata = {
+                    str(item["id"]): item for item in saved_analyses
+                }
+
+                def format_comparison_analysis(analysis_id):
+                    item = analysis_metadata[str(analysis_id)]
+                    created_at = str(item.get("created_at", ""))
+                    created_label = created_at[:16].replace("T", " ")
+                    return (
+                        f"{item.get('target_career', 'Saved Analysis')} — "
+                        f"{item.get('match_score', 0)}% — {created_label}"
+                    )
+
+                analysis_ids = list(analysis_metadata)
+                comparison_col1, comparison_col2 = st.columns(2)
+                with comparison_col1:
+                    before_analysis_id = st.selectbox(
+                        "Before analysis",
+                        analysis_ids,
+                        index=len(analysis_ids) - 1,
+                        format_func=format_comparison_analysis,
+                        key="before_saved_analysis_comparison",
+                    )
+                with comparison_col2:
+                    after_analysis_id = st.selectbox(
+                        "After analysis",
+                        analysis_ids,
+                        index=0,
+                        format_func=format_comparison_analysis,
+                        key="after_saved_analysis_comparison",
+                    )
+
+                if st.button(
+                    "Compare Saved Analyses",
+                    key="compare_saved_analyses_button",
+                ):
+                    if before_analysis_id == after_analysis_id:
+                        st.warning(
+                            "Choose two different saved analyses to compare."
+                        )
+                    else:
+                        try:
+                            before_record = load_job_analysis(
+                                st.session_state.auth_client,
+                                st.session_state.user_id,
+                                before_analysis_id,
+                            )
+                            after_record = load_job_analysis(
+                                st.session_state.auth_client,
+                                st.session_state.user_id,
+                                after_analysis_id,
+                            )
+                            before_record["created_at"] = analysis_metadata[
+                                before_analysis_id
+                            ].get("created_at", "")
+                            after_record["created_at"] = analysis_metadata[
+                                after_analysis_id
+                            ].get("created_at", "")
+                            st.session_state.saved_analysis_comparison = (
+                                compare_saved_analyses(
+                                    before_record,
+                                    after_record,
+                                )
+                            )
+                        except PersistenceError as error:
+                            st.error(str(error))
+                        except Exception:
+                            st.error(
+                                "The saved analyses could not be compared."
+                            )
+
+                comparison = st.session_state.saved_analysis_comparison
+                comparison_matches_selection = (
+                    comparison is not None
+                    and comparison["before"]["id"] == before_analysis_id
+                    and comparison["after"]["id"] == after_analysis_id
+                )
+                if comparison_matches_selection:
+                    st.info(comparison["summary"])
+                    if not comparison["same_target_career"]:
+                        st.warning(
+                            "The target career changed. Target Career Match "
+                            "uses different benchmarks in this comparison."
+                        )
+                    if not comparison["same_job_description"]:
+                        st.warning(
+                            "The job description changed. Job and semantic "
+                            "score changes reflect both the résumé and posting."
+                        )
+
+                    st.table(comparison["score_rows"])
+                    skill_change_col1, skill_change_col2, skill_change_col3 = (
+                        st.columns(3)
+                    )
+                    with skill_change_col1:
+                        st.markdown("**Newly Matched Skills**")
+                        render_compact_skill_list(
+                            st,
+                            comparison["newly_matched_skills"],
+                            "No newly matched skills.",
+                        )
+                    with skill_change_col2:
+                        st.markdown("**No Longer Matched**")
+                        render_compact_skill_list(
+                            st,
+                            comparison["no_longer_matched_skills"],
+                            "No matched skills were lost.",
+                        )
+                    with skill_change_col3:
+                        st.markdown("**Remaining Gaps**")
+                        render_compact_skill_list(
+                            st,
+                            comparison["remaining_gaps"],
+                            "No required-skill gaps remain.",
+                        )
+
+                    if comparison["evidence_improved"]:
+                        st.markdown("**Evidence Improved**")
+                        for change in comparison["evidence_improved"]:
+                            st.write(f"- {change}")
+                    if comparison["evidence_weakened"]:
+                        st.markdown("**Evidence Weakened**")
+                        for change in comparison["evidence_weakened"]:
+                            st.write(f"- {change}")
+                    st.caption(comparison["disclaimer"])
 
     st.write(
         "Upload or paste a resume, then paste a job description to compare candidate readiness."

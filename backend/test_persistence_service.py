@@ -52,6 +52,26 @@ class PersistenceServiceTests(unittest.TestCase):
         with self.assertRaises(PersistenceError):
             load_job_analysis(client, "user-123", "missing")
 
+    def test_load_job_analysis_filters_by_owner_and_id(self):
+        client = MagicMock()
+        first_filter = client.table.return_value.select.return_value.eq
+        second_filter = first_filter.return_value.eq
+        second_filter.return_value.maybe_single.return_value.execute.return_value = (
+            SimpleNamespace(
+                data={
+                    "id": "analysis-123",
+                    "target_career": "Data Analyst",
+                    "result_data": {"job_comparison": {"match_score": 80}},
+                }
+            )
+        )
+
+        row = load_job_analysis(client, "user-123", "analysis-123")
+
+        self.assertEqual(row["id"], "analysis-123")
+        first_filter.assert_called_once_with("user_id", "user-123")
+        second_filter.assert_called_once_with("id", "analysis-123")
+
     def test_delete_job_analysis_filters_by_owner_and_id(self):
         client = MagicMock()
         chain = client.table.return_value.delete.return_value.eq.return_value
