@@ -25,6 +25,7 @@ from career_engine import (
     generate_match_action_summary,
     generate_progress_tracker,
     generate_resume_improvement_plan,
+    generate_saved_progress_report,
     generate_score_interpretation,
     prioritize_missing_skills,
     rank_career_matches,
@@ -34,6 +35,53 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_saved_progress_report_exports_selected_history(self):
+        progress_group = {
+            "job_title": "Senior Data Analyst",
+            "analysis_count": 3,
+            "earliest": {"created_at": "2026-08-20T10:00:00Z"},
+            "latest": {"created_at": "2026-08-23T10:00:00Z"},
+            "metric_rows": [
+                {
+                    "Metric": "Job Description Match",
+                    "Earliest": "75.00%",
+                    "Latest": "83.33%",
+                    "Change": "+8.33 points",
+                },
+                {
+                    "Metric": "Evidence-Adjusted Score",
+                    "Earliest": "55.00%",
+                    "Latest": "72.50%",
+                    "Change": "+17.50 points",
+                },
+            ],
+            "skills_gained": ["Databricks", "Statistics"],
+            "skills_no_longer_matched": [],
+            "remaining_gaps": ["Root Cause Analysis"],
+        }
+
+        report = generate_saved_progress_report(
+            progress_group,
+            "Data Analyst",
+        )
+
+        self.assertIn("Target Career: Data Analyst", report)
+        self.assertIn("Job: Senior Data Analyst", report)
+        self.assertIn("Comparable Analyses: 3", report)
+        self.assertIn("Progress Period: 2026-08-20 to 2026-08-23", report)
+        self.assertIn(
+            "Job Description Match: 75.00% -> 83.33% (+8.33 points)",
+            report,
+        )
+        self.assertIn("- Databricks", report)
+        self.assertIn("- No matched skills were lost.", report)
+        self.assertIn("- Root Cause Analysis", report)
+        self.assertIn("or guarantee an interview", report)
+
+    def test_saved_progress_report_requires_comparable_history(self):
+        with self.assertRaisesRegex(ValueError, "comparable"):
+            generate_saved_progress_report(None, "Data Analyst")
+
     def test_saved_progress_dashboard_groups_comparable_job_history(self):
         shared_job = "Required skills: Python, SQL, Power BI, and Databricks."
         records = [

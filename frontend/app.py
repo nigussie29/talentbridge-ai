@@ -22,6 +22,7 @@ from career_engine import (
     classify_job_skills,
     generate_course_plan,
     build_saved_analysis_progress_dashboard,
+    generate_saved_progress_report,
     compare_saved_analyses,
     generate_hr_report,
     generate_mode_report,
@@ -1149,6 +1150,20 @@ with tab1:
                                 progress_group["remaining_gaps"],
                                 "No required-skill gaps remain.",
                             )
+                        progress_report = generate_saved_progress_report(
+                            progress_group,
+                            progress_target_career,
+                        )
+                        st.download_button(
+                            label="Download Progress Report",
+                            data=progress_report,
+                            file_name="talentbridge_saved_progress_report.txt",
+                            mime="text/plain",
+                            key=(
+                                "download_saved_progress_report_"
+                                f"{selected_progress_group_key}"
+                            ),
+                        )
                         st.caption(dashboard["disclaimer"])
             else:
                 st.caption("Save an analysis to begin a progress history.")

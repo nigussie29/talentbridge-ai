@@ -2936,6 +2936,73 @@ def build_saved_analysis_progress_dashboard(records, target_career=None):
     }
 
 
+def generate_saved_progress_report(progress_group, target_career):
+    """Create a portable text summary for one comparable progress history."""
+    if not progress_group:
+        raise ValueError("Choose a comparable saved-analysis history first.")
+
+    earliest = progress_group.get("earliest", {})
+    latest = progress_group.get("latest", {})
+    analysis_count = int(progress_group.get("analysis_count", 0) or 0)
+    job_title = str(progress_group.get("job_title", "") or "Saved Job")
+    start_date = str(earliest.get("created_at", ""))[:10] or "Unknown"
+    end_date = str(latest.get("created_at", ""))[:10] or "Unknown"
+
+    lines = [
+        "TalentBridge AI - Saved Analysis Progress Report",
+        "================================================",
+        "",
+        f"Target Career: {target_career or 'Not specified'}",
+        f"Job: {job_title}",
+        f"Comparable Analyses: {analysis_count}",
+        f"Progress Period: {start_date} to {end_date}",
+        "",
+        "Score Progress",
+        "--------------",
+    ]
+
+    metric_rows = progress_group.get("metric_rows", [])
+    if metric_rows:
+        for metric in metric_rows:
+            lines.append(
+                f"- {metric.get('Metric', 'Score')}: "
+                f"{metric.get('Earliest', 'Not available')} -> "
+                f"{metric.get('Latest', 'Not available')} "
+                f"({metric.get('Change', 'No change reported')})"
+            )
+    else:
+        lines.append("- No score history is available.")
+
+    skill_sections = (
+        ("Skills Gained", progress_group.get("skills_gained", []),
+         "No newly matched skills."),
+        ("No Longer Matched", progress_group.get("skills_no_longer_matched", []),
+         "No matched skills were lost."),
+        ("Remaining Gaps", progress_group.get("remaining_gaps", []),
+         "No required-skill gaps remain."),
+    )
+    for heading, skills, empty_message in skill_sections:
+        lines.extend(["", heading, "-" * len(heading)])
+        if skills:
+            lines.extend(f"- {skill}" for skill in skills)
+        else:
+            lines.append(f"- {empty_message}")
+
+    lines.extend(
+        [
+            "",
+            "Important",
+            "---------",
+            "This report re-evaluates private saved inputs with the current "
+            "TalentBridge rules. It measures resume-evidence changes for the "
+            "same job posting; it does not verify skill growth, predict an "
+            "employer decision, or guarantee an interview.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def generate_score_interpretation(
     job_comparison,
     semantic_match_details,

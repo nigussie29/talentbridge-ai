@@ -166,6 +166,13 @@ cannot yet form a comparison. All records remain private to their owner, are
 re-evaluated with the current TalentBridge rules, and require no new database
 migration.
 
+Each comparable dashboard history can also be downloaded as a plain-text
+progress report. The report records the selected career and job, comparison
+period, all four earliest-to-latest score changes, skills gained, skills no
+longer matched, remaining gaps, and the evidence-use disclaimer. It contains a
+summary only and does not export the private résumé or full job-description
+text. No new database migration is required.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an
