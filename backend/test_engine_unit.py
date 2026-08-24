@@ -25,6 +25,7 @@ from career_engine import (
     generate_match_action_summary,
     generate_progress_tracker,
     generate_resume_improvement_plan,
+    generate_saved_progress_insight,
     generate_saved_progress_report,
     generate_score_interpretation,
     prioritize_missing_skills,
@@ -35,6 +36,94 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_saved_progress_insight_explains_flat_history(self):
+        insight = generate_saved_progress_insight(
+            {
+                "metric_rows": [
+                    {"Metric": "Job Description Match", "delta_value": 0.0},
+                    {"Metric": "Semantic Match", "delta_value": 0.0},
+                    {"Metric": "Target Career Match", "delta_value": 0.0},
+                    {"Metric": "Evidence-Adjusted Score", "delta_value": 0.0},
+                ],
+                "skills_gained": [],
+                "skills_no_longer_matched": [],
+                "remaining_gaps": ["Excel", "Kubernetes"],
+            }
+        )
+
+        self.assertEqual(insight["status"], "No Measurable Change")
+        self.assertIn("No measurable score", insight["summary"])
+        self.assertIn("Excel, Kubernetes", insight["next_step"])
+        self.assertIn("analyze this same job again", insight["next_step"])
+
+    def test_saved_progress_insight_recognizes_positive_progress(self):
+        insight = generate_saved_progress_insight(
+            {
+                "metric_rows": [
+                    {"Metric": "Job Description Match", "delta_value": 8.33},
+                    {"Metric": "Semantic Match", "delta_value": 4.5},
+                    {"Metric": "Target Career Match", "delta_value": 0.0},
+                ],
+                "skills_gained": ["Databricks"],
+                "skills_no_longer_matched": [],
+                "remaining_gaps": [],
+            }
+        )
+
+        self.assertEqual(insight["status"], "Progress Detected")
+        self.assertEqual(len(insight["positive_metrics"]), 2)
+        self.assertIn("measurable scope", insight["next_step"])
+
+    def test_saved_progress_insight_flags_mixed_progress(self):
+        insight = generate_saved_progress_insight(
+            {
+                "metric_rows": [
+                    {"Metric": "Job Description Match", "Change": "+5.00 points"},
+                    {"Metric": "Semantic Match", "Change": "-2.50 points"},
+                ],
+                "remaining_gaps": ["Statistics"],
+            }
+        )
+
+        self.assertEqual(insight["status"], "Mixed Progress")
+        self.assertEqual(insight["positive_metrics"], ["Job Description Match"])
+        self.assertEqual(insight["negative_metrics"], ["Semantic Match"])
+
+    def test_saved_progress_insight_flags_declining_history(self):
+        insight = generate_saved_progress_insight(
+            {
+                "metric_rows": [
+                    {"Metric": "Job Description Match", "delta_value": -10.0},
+                    {"Metric": "Semantic Match", "delta_value": -4.0},
+                ],
+                "skills_no_longer_matched": ["SQL"],
+                "remaining_gaps": ["SQL"],
+            }
+        )
+
+        self.assertEqual(insight["status"], "Needs Attention")
+        self.assertIn("declined", insight["summary"])
+        self.assertIn("SQL", insight["next_step"])
+
+    def test_saved_progress_insight_detects_skill_change_without_score_change(self):
+        insight = generate_saved_progress_insight(
+            {
+                "metric_rows": [
+                    {"Metric": "Job Description Match", "delta_value": 0.0},
+                ],
+                "skills_gained": ["Excel"],
+                "skills_no_longer_matched": [],
+                "remaining_gaps": [],
+            }
+        )
+
+        self.assertEqual(insight["status"], "Evidence Changed")
+        self.assertIn("headline scores did not move", insight["summary"])
+
+    def test_saved_progress_insight_requires_comparable_history(self):
+        with self.assertRaisesRegex(ValueError, "comparable"):
+            generate_saved_progress_insight(None)
+
     def test_saved_progress_report_exports_selected_history(self):
         progress_group = {
             "job_title": "Senior Data Analyst",
@@ -76,6 +165,9 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertIn("- Databricks", report)
         self.assertIn("- No matched skills were lost.", report)
         self.assertIn("- Root Cause Analysis", report)
+        self.assertIn("Progress Insight", report)
+        self.assertIn("Status: Progress Detected", report)
+        self.assertIn("Recommended Next Step:", report)
         self.assertIn("or guarantee an interview", report)
 
     def test_saved_progress_report_requires_comparable_history(self):

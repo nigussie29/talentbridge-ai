@@ -22,6 +22,7 @@ from career_engine import (
     classify_job_skills,
     generate_course_plan,
     build_saved_analysis_progress_dashboard,
+    generate_saved_progress_insight,
     generate_saved_progress_report,
     compare_saved_analyses,
     generate_hr_report,
@@ -1150,6 +1151,28 @@ with tab1:
                                 progress_group["remaining_gaps"],
                                 "No required-skill gaps remain.",
                             )
+                        progress_insight = generate_saved_progress_insight(
+                            progress_group
+                        )
+                        st.markdown("#### Progress Insight")
+                        insight_message = (
+                            f"**{progress_insight['status']}:** "
+                            f"{progress_insight['summary']}"
+                        )
+                        if progress_insight["status"] == "Progress Detected":
+                            st.success(insight_message)
+                        elif progress_insight["status"] in {
+                            "Mixed Progress",
+                            "Needs Attention",
+                        }:
+                            st.warning(insight_message)
+                        else:
+                            st.info(insight_message)
+                        st.write(
+                            "**Recommended next step:** "
+                            f"{progress_insight['next_step']}"
+                        )
+                        st.caption(progress_insight["disclaimer"])
                         progress_report = generate_saved_progress_report(
                             progress_group,
                             progress_target_career,

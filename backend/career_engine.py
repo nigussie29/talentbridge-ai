@@ -2936,6 +2936,107 @@ def build_saved_analysis_progress_dashboard(records, target_career=None):
     }
 
 
+def generate_saved_progress_insight(progress_group):
+    """Explain the direction of one comparable saved-analysis history."""
+    if not progress_group:
+        raise ValueError("Choose a comparable saved-analysis history first.")
+
+    positive_metrics = []
+    negative_metrics = []
+    unchanged_metrics = []
+    for metric in progress_group.get("metric_rows", []):
+        label = str(metric.get("Metric", "Score"))
+        raw_delta = metric.get("delta_value")
+        if raw_delta is None:
+            delta_match = re.search(
+                r"[-+]?\d+(?:\.\d+)?",
+                str(metric.get("Change", "0")),
+            )
+            raw_delta = delta_match.group(0) if delta_match else 0
+        try:
+            delta = float(raw_delta)
+        except (TypeError, ValueError):
+            delta = 0.0
+
+        if delta > 0.005:
+            positive_metrics.append(label)
+        elif delta < -0.005:
+            negative_metrics.append(label)
+        else:
+            unchanged_metrics.append(label)
+
+    skills_gained = list(progress_group.get("skills_gained", []))
+    skills_lost = list(progress_group.get("skills_no_longer_matched", []))
+    remaining_gaps = list(progress_group.get("remaining_gaps", []))
+
+    if positive_metrics and negative_metrics:
+        status = "Mixed Progress"
+        summary = (
+            f"{len(positive_metrics)} score(s) improved while "
+            f"{len(negative_metrics)} declined. Review the changed résumé "
+            "evidence before treating this as overall progress."
+        )
+    elif negative_metrics:
+        status = "Needs Attention"
+        summary = (
+            f"{len(negative_metrics)} score(s) declined across the saved "
+            "history. Check whether required-skill evidence was removed or "
+            "weakened."
+        )
+    elif positive_metrics:
+        status = "Progress Detected"
+        summary = (
+            f"{len(positive_metrics)} score(s) improved across the comparable "
+            "saved analyses."
+        )
+    elif skills_gained or skills_lost:
+        status = "Evidence Changed"
+        summary = (
+            "Required-skill evidence changed, although the four headline "
+            "scores did not move measurably."
+        )
+    else:
+        status = "No Measurable Change"
+        summary = (
+            "No measurable score or required-skill change appears across "
+            "these comparable analyses."
+        )
+
+    if remaining_gaps:
+        priority_gaps = remaining_gaps[:3]
+        next_step = (
+            "Strengthen truthful résumé evidence for "
+            f"{', '.join(priority_gaps)}, then analyze this same job again."
+        )
+    elif skills_lost:
+        next_step = (
+            "Review the evidence for skills that are no longer matched, then "
+            "reanalyze this same job."
+        )
+    else:
+        next_step = (
+            "Maintain the current evidence and add measurable scope or results "
+            "only when they are truthful and supportable."
+        )
+
+    return {
+        "status": status,
+        "summary": summary,
+        "next_step": next_step,
+        "positive_metrics": positive_metrics,
+        "negative_metrics": negative_metrics,
+        "unchanged_metrics": unchanged_metrics,
+        "skills_gained": skills_gained,
+        "skills_no_longer_matched": skills_lost,
+        "remaining_gaps": remaining_gaps,
+        "disclaimer": (
+            "This insight describes changes in saved résumé evidence under "
+            "the current TalentBridge rules. It does not verify completed "
+            "training, proficiency, or an employer decision."
+        ),
+    }
+
+
 def generate_saved_progress_report(progress_group, target_career):
     """Create a portable text summary for one comparable progress history."""
     if not progress_group:
@@ -2972,6 +3073,18 @@ def generate_saved_progress_report(progress_group, target_career):
             )
     else:
         lines.append("- No score history is available.")
+
+    insight = generate_saved_progress_insight(progress_group)
+    lines.extend(
+        [
+            "",
+            "Progress Insight",
+            "----------------",
+            f"Status: {insight['status']}",
+            insight["summary"],
+            f"Recommended Next Step: {insight['next_step']}",
+        ]
+    )
 
     skill_sections = (
         ("Skills Gained", progress_group.get("skills_gained", []),

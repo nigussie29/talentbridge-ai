@@ -173,6 +173,16 @@ longer matched, remaining gaps, and the evidence-use disclaimer. It contains a
 summary only and does not export the private résumé or full job-description
 text. No new database migration is required.
 
+### Saved Progress Insight
+
+Each comparable history also receives a plain-language progress interpretation.
+TalentBridge classifies the history as Progress Detected, Mixed Progress, No
+Measurable Change, Evidence Changed, or Needs Attention. It explains the score
+direction and recommends the next truthful résumé-evidence step, prioritizing up
+to three remaining required-skill gaps. The same interpretation is included in
+the downloadable progress report. It describes changes in saved evidence only;
+it does not verify training, proficiency, or an employer decision.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an
