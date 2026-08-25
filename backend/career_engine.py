@@ -2884,6 +2884,7 @@ def build_saved_analysis_progress_dashboard(records, target_career=None):
                     f"{date_start} to {date_end}"
                 ),
                 "analysis_count": len(job_snapshots),
+                "analyses": job_snapshots,
                 "earliest": earliest,
                 "latest": latest,
                 "metric_rows": metric_rows,
@@ -2932,6 +2933,115 @@ def build_saved_analysis_progress_dashboard(records, target_career=None):
             "TalentBridge rules. Trends measure resume evidence changes for the "
             "same posting; they do not verify skill growth or predict an employer "
             "decision."
+        ),
+    }
+
+
+def select_best_saved_resume_version(progress_group):
+    """Select the strongest saved résumé evidence for one comparable job.
+
+    Evidence quality is the primary criterion. Remaining match scores, gap
+    count, and recency provide deterministic tie breakers without turning the
+    result into an employer or eligibility decision.
+    """
+    if progress_group is None:
+        raise ValueError("Choose a comparable saved-analysis history first.")
+
+    candidates = list(progress_group.get("analyses", []))
+    if not candidates:
+        for key in ("earliest", "latest"):
+            candidate = progress_group.get(key)
+            if candidate and candidate not in candidates:
+                candidates.append(candidate)
+    if not candidates:
+        raise ValueError("No saved résumé versions are available to rank.")
+
+    def numeric_value(candidate, key):
+        try:
+            return float(candidate.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def strong_evidence_count(candidate):
+        return sum(
+            1
+            for level in candidate.get("evidence_levels", {}).values()
+            if level == "Strong Evidence"
+        )
+
+    def ranking_key(candidate):
+        return (
+            numeric_value(candidate, "evidence_adjusted_score"),
+            strong_evidence_count(candidate),
+            numeric_value(candidate, "job_description_match"),
+            numeric_value(candidate, "semantic_match"),
+            numeric_value(candidate, "target_career_match"),
+            -len(candidate.get("missing_skills", [])),
+            str(candidate.get("created_at", "")),
+            str(candidate.get("id", "")),
+        )
+
+    best = max(candidates, key=ranking_key)
+    latest = progress_group.get("latest", {})
+    evidence_levels = best.get("evidence_levels", {})
+    strong_skills = sorted(
+        skill
+        for skill, level in evidence_levels.items()
+        if level == "Strong Evidence"
+    )
+    if not strong_skills:
+        strong_skills = sorted(best.get("matched_skills", []))
+    remaining_gaps = sorted(best.get("missing_skills", []))
+    evidence_score = numeric_value(best, "evidence_adjusted_score")
+    analysis_count = len(candidates)
+    saved_at = str(best.get("created_at", ""))
+    saved_date = saved_at[:10] or "Unknown date"
+    is_latest = bool(
+        latest
+        and str(best.get("id", "")) == str(latest.get("id", ""))
+    )
+
+    reason = (
+        f"This version ranks highest among {analysis_count} comparable saved "
+        f"versions because the ranking prioritizes its {evidence_score:.2f}% "
+        "Evidence-Adjusted Score, then strong evidence, required-skill match, "
+        "semantic alignment, career match, fewer gaps, and recency."
+    )
+    if remaining_gaps:
+        priority_gaps = remaining_gaps[:3]
+        recommendation = (
+            "Use this saved version as the starting point, then strengthen "
+            "truthful résumé evidence for "
+            f"{', '.join(priority_gaps)}."
+        )
+    else:
+        recommendation = (
+            "Use this saved version as the starting point and preserve its "
+            "truthful evidence when tailoring the résumé."
+        )
+
+    return {
+        "analysis_id": str(best.get("id", "")),
+        "saved_at": saved_at,
+        "saved_date": saved_date,
+        "is_latest": is_latest,
+        "analysis_count": analysis_count,
+        "job_description_match": numeric_value(
+            best,
+            "job_description_match",
+        ),
+        "semantic_match": numeric_value(best, "semantic_match"),
+        "target_career_match": numeric_value(best, "target_career_match"),
+        "evidence_adjusted_score": evidence_score,
+        "strong_skills": strong_skills,
+        "matched_skills": sorted(best.get("matched_skills", [])),
+        "remaining_gaps": remaining_gaps,
+        "reason": reason,
+        "recommendation": recommendation,
+        "disclaimer": (
+            "This selection ranks comparable saved résumé evidence under the "
+            "current TalentBridge rules. It does not verify proficiency, "
+            "predict an employer decision, or guarantee an interview."
         ),
     }
 
@@ -3075,6 +3185,7 @@ def generate_saved_progress_report(progress_group, target_career):
         lines.append("- No score history is available.")
 
     insight = generate_saved_progress_insight(progress_group)
+    best_version = select_best_saved_resume_version(progress_group)
     lines.extend(
         [
             "",
@@ -3083,6 +3194,37 @@ def generate_saved_progress_report(progress_group, target_career):
             f"Status: {insight['status']}",
             insight["summary"],
             f"Recommended Next Step: {insight['next_step']}",
+            "",
+            "Best Saved Resume Version",
+            "-------------------------",
+            f"Saved Date: {best_version['saved_date']}",
+            (
+                "Evidence-Adjusted Score: "
+                f"{best_version['evidence_adjusted_score']:.2f}%"
+            ),
+            (
+                "Job Description Match: "
+                f"{best_version['job_description_match']:.2f}%"
+            ),
+            f"Semantic Match: {best_version['semantic_match']:.2f}%",
+            (
+                "Target Career Match: "
+                f"{best_version['target_career_match']:.2f}%"
+            ),
+            "Strongest Evidence: "
+            + (
+                ", ".join(best_version["strong_skills"])
+                if best_version["strong_skills"]
+                else "No strong-evidence skills identified"
+            ),
+            "Remaining Gaps: "
+            + (
+                ", ".join(best_version["remaining_gaps"])
+                if best_version["remaining_gaps"]
+                else "None"
+            ),
+            f"Why Selected: {best_version['reason']}",
+            f"Recommended Use: {best_version['recommendation']}",
         ]
     )
 

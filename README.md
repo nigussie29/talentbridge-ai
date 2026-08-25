@@ -183,6 +183,21 @@ to three remaining required-skill gaps. The same interpretation is included in
 the downloadable progress report. It describes changes in saved evidence only;
 it does not verify training, proficiency, or an employer decision.
 
+### Best Saved Resume Version
+
+For each comparable career and job history, TalentBridge identifies the saved
+résumé version with the strongest evidence under the current rules. The ranking
+prioritizes the Evidence-Adjusted Requirement Score, then strong evidence,
+required-skill match, semantic alignment, target-career match, fewer gaps, and
+recency. The app shows the selected version's date, four scores, strongest
+evidence, remaining gaps, and a truthful recommendation.
+
+Users can load the selected analysis and its reusable résumé and job-description
+inputs directly from the progress dashboard. The downloadable progress report
+also records the best-version summary. This feature uses existing private saved
+analyses, requires no database migration, and does not predict an employer
+decision or guarantee an interview.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an
