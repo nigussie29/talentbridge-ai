@@ -27,6 +27,7 @@ from career_engine import (
     generate_resume_improvement_plan,
     generate_saved_progress_insight,
     generate_saved_progress_report,
+    generate_best_version_application_plan,
     select_best_saved_resume_version,
     generate_score_interpretation,
     prioritize_missing_skills,
@@ -130,6 +131,68 @@ class TalentBridgeEngineTests(unittest.TestCase):
             select_best_saved_resume_version(None)
         with self.assertRaisesRegex(ValueError, "No saved"):
             select_best_saved_resume_version({})
+
+    def test_best_version_application_plan_exports_truthful_summary(self):
+        plan = generate_best_version_application_plan(
+            {
+                "job_title": "Senior Data Analyst",
+                "analyses": [
+                    {
+                        "id": "best",
+                        "created_at": "2026-08-23T10:00:00Z",
+                        "evidence_adjusted_score": 82.5,
+                        "job_description_match": 80.0,
+                        "semantic_match": 68.0,
+                        "target_career_match": 90.0,
+                        "matched_skills": ["Python", "SQL"],
+                        "missing_skills": ["Databricks"],
+                        "evidence_levels": {
+                            "Python": "Strong Evidence",
+                            "SQL": "Moderate Evidence",
+                            "Databricks": "Missing",
+                        },
+                    }
+                ],
+                "latest": {"id": "best"},
+            },
+            "Data Analyst",
+        )
+
+        self.assertIn("Best-Version Application Plan", plan)
+        self.assertIn("Target Career: Data Analyst", plan)
+        self.assertIn("Job: Senior Data Analyst", plan)
+        self.assertIn("Selected Saved Version: 2026-08-23", plan)
+        self.assertIn("Evidence-Adjusted Requirement Score: 82.50%", plan)
+        self.assertIn("Evidence to Lead With\n---------------------\n- Python", plan)
+        self.assertIn("Matched Requirements", plan)
+        self.assertIn("- Databricks", plan)
+        self.assertIn("Application Checklist", plan)
+        self.assertIn("Never add a skill", plan)
+        self.assertNotIn("resume_text", plan)
+
+    def test_best_version_application_plan_handles_no_gaps(self):
+        plan = generate_best_version_application_plan(
+            {
+                "analyses": [
+                    {
+                        "id": "complete",
+                        "created_at": "2026-08-24T10:00:00Z",
+                        "matched_skills": ["Python"],
+                        "missing_skills": [],
+                        "evidence_levels": {"Python": "Strong Evidence"},
+                    }
+                ],
+                "latest": {"id": "complete"},
+            },
+            "AI Engineer",
+        )
+
+        self.assertIn("No required-skill gaps remain", plan)
+        self.assertIn("Recheck the original posting", plan)
+
+    def test_best_version_application_plan_requires_history(self):
+        with self.assertRaisesRegex(ValueError, "comparable"):
+            generate_best_version_application_plan(None, "Data Analyst")
 
     def test_saved_progress_insight_explains_flat_history(self):
         insight = generate_saved_progress_insight(
