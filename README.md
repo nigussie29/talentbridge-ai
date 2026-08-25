@@ -198,6 +198,13 @@ also records the best-version summary. This feature uses existing private saved
 analyses, requires no database migration, and does not predict an employer
 decision or guarantee an interview.
 
+The dashboard can also download a Best-Version Application Plan. This private
+input-safe summary records the selected version, all four scores, strongest
+evidence, matched requirements, remaining gaps, and a truthful application
+checklist. It deliberately excludes the résumé and full job-description text,
+requires no database migration, and warns users never to invent evidence or
+treat the plan as an employer decision.
+
 ### Private Data Management
 
 Users can permanently delete their own saved analyses and resumes after an
