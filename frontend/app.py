@@ -24,6 +24,7 @@ from career_engine import (
     build_saved_analysis_progress_dashboard,
     generate_saved_progress_insight,
     generate_saved_progress_report,
+    select_best_saved_resume_version,
     compare_saved_analyses,
     generate_hr_report,
     generate_mode_report,
@@ -1173,6 +1174,122 @@ with tab1:
                             f"{progress_insight['next_step']}"
                         )
                         st.caption(progress_insight["disclaimer"])
+
+                        best_version = select_best_saved_resume_version(
+                            progress_group
+                        )
+                        st.markdown("#### Best Saved Resume Version")
+                        version_label = (
+                            f"Saved {best_version['saved_date']}"
+                            + (
+                                " — Latest version"
+                                if best_version["is_latest"]
+                                else " — Earlier version"
+                            )
+                        )
+                        st.info(version_label)
+                        best_metric_columns = st.columns(4)
+                        best_metrics = (
+                            (
+                                "Evidence-Adjusted Score",
+                                best_version["evidence_adjusted_score"],
+                            ),
+                            (
+                                "Job Description Match",
+                                best_version["job_description_match"],
+                            ),
+                            (
+                                "Semantic Match",
+                                best_version["semantic_match"],
+                            ),
+                            (
+                                "Target Career Match",
+                                best_version["target_career_match"],
+                            ),
+                        )
+                        for column, (label, value) in zip(
+                            best_metric_columns,
+                            best_metrics,
+                        ):
+                            with column:
+                                st.metric(label, f"{value:.2f}%")
+
+                        best_skill_col1, best_skill_col2 = st.columns(2)
+                        with best_skill_col1:
+                            st.markdown("**Strongest Evidence**")
+                            render_compact_skill_list(
+                                st,
+                                best_version["strong_skills"],
+                                "No strong-evidence skills identified.",
+                            )
+                        with best_skill_col2:
+                            st.markdown("**Remaining Gaps**")
+                            render_compact_skill_list(
+                                st,
+                                best_version["remaining_gaps"],
+                                "No required-skill gaps remain.",
+                            )
+                        st.write(best_version["reason"])
+                        st.write(
+                            "**Recommended use:** "
+                            f"{best_version['recommendation']}"
+                        )
+                        if st.button(
+                            "Load Best Analysis",
+                            key=(
+                                "load_best_saved_analysis_"
+                                f"{selected_progress_group_key}"
+                            ),
+                        ):
+                            try:
+                                saved_record = load_job_analysis(
+                                    st.session_state.auth_client,
+                                    st.session_state.user_id,
+                                    best_version["analysis_id"],
+                                )
+                                loaded_result = saved_record["result_data"]
+                                st.session_state.match_result = loaded_result
+                                st.session_state.current_analysis_id = (
+                                    saved_record["id"]
+                                )
+                                st.session_state.resume_text_input = (
+                                    loaded_result.get("resume_text", "")
+                                )
+                                st.session_state.job_description_input = (
+                                    loaded_result.get(
+                                        "job_description_text",
+                                        "",
+                                    )
+                                )
+                                st.session_state.job_description_title_input = (
+                                    loaded_result.get(
+                                        "job_title",
+                                        loaded_result.get(
+                                            "target_career",
+                                            "Saved Job",
+                                        ),
+                                    )
+                                )
+                                st.session_state.job_description_company_input = (
+                                    loaded_result.get("company_name", "")
+                                )
+                                st.session_state.job_description_source_input = (
+                                    loaded_result.get("source_url", "")
+                                )
+                                st.session_state.current_job_description_id = None
+                                st.session_state.data_management_notice = (
+                                    "Best saved analysis and both reusable "
+                                    "inputs loaded."
+                                )
+                                st.rerun()
+                            except PersistenceError as error:
+                                st.error(str(error))
+                            except Exception:
+                                st.error(
+                                    "The best saved analysis could not be loaded."
+                                )
+                        st.caption(best_version["disclaimer"])
+
                         progress_report = generate_saved_progress_report(
                             progress_group,
                             progress_target_career,
