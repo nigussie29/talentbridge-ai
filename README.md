@@ -450,7 +450,9 @@ The app supports downloadable text reports, including:
 
 * Resume-based career report
 * Manual career readiness report
-* Full mode-based report for Job Seeker, HR / Recruiter, or Training Center Mode## New Version 2 Features
+* Full mode-based report for Job Seeker, HR / Recruiter, or Training Center Mode
+
+## Advanced Workflow Features
 
 TalentBridge AI now includes advanced features that make it more than a resume scanner.
 
@@ -542,6 +544,8 @@ Example:
 ```text
 Completed Skills: 2 of 5
 Progress Completion Score: 40%
+```
+
 ### Semantic Job-Resume Matching
 
 TalentBridge AI now compares resumes and job descriptions in two ways:
@@ -863,6 +867,7 @@ Completion Score
 Recruiter Feedback Report
 ↓
 Improved Candidate Readiness
+```
 
 ### Explainable Career-Fit Ranking
 
@@ -893,20 +898,17 @@ include only facts they can explain and prove.
 
 ## Future Improvements
 
-Planned improvements include:
+The deployed MVP already includes authentication, private database and file
+storage, HR batch screening, training-center workflows, progress tracking, and
+semantic matching. Future work is intentionally limited to improvements that
+require additional product research, data, or infrastructure:
 
-* Add stronger NLP skill extraction
-* Train and validate a career prediction model on real labeled outcome data
-* Add semantic job-resume matching using embeddings
-* Add RAG assistant for job and scholarship documents
-* Add user login
-* Add database storage
-* Add HR batch resume screening
-* Add training center dashboard
-* Add progress tracking
-* Add payment or subscription feature
-* Add Power BI dashboard
-* Improve UI design and branding
+* Evaluate skill extraction and scoring on a representative labeled dataset
+* Add opt-in embedding models after privacy, cost, and bias evaluation
+* Train and independently validate any future predictive model before use
+* Complete independent accessibility, security, and usability reviews
+* Add subscription billing only after product and legal requirements are defined
+* Add external BI and RAG integrations only with explicit user data controls
 
 ---
 
@@ -918,6 +920,6 @@ Built TalentBridge AI, an end-to-end AI career readiness and training web applic
 
 ## Project Status
 
-Current version: Version 2.0
-Status: Working Streamlit web app deployed online
+Current release: TalentBridge AI MVP — August 2026
+Status: Production-ready portfolio MVP deployed on Streamlit Community Cloud
 Live Demo: https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app/
