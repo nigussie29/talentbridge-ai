@@ -27,6 +27,7 @@ from career_engine import (
     generate_resume_improvement_plan,
     generate_saved_progress_insight,
     generate_saved_progress_report,
+    select_best_saved_resume_version,
     generate_score_interpretation,
     prioritize_missing_skills,
     rank_career_matches,
@@ -36,6 +37,100 @@ from career_engine import (
 
 
 class TalentBridgeEngineTests(unittest.TestCase):
+    def test_best_saved_resume_version_prefers_stronger_earlier_evidence(self):
+        best = select_best_saved_resume_version(
+            {
+                "analysis_count": 3,
+                "analyses": [
+                    {
+                        "id": "earlier-best",
+                        "created_at": "2026-08-21T10:00:00Z",
+                        "evidence_adjusted_score": 82.5,
+                        "job_description_match": 80.0,
+                        "semantic_match": 68.0,
+                        "target_career_match": 90.0,
+                        "matched_skills": ["Python", "SQL", "Power BI"],
+                        "missing_skills": ["Databricks"],
+                        "evidence_levels": {
+                            "Python": "Strong Evidence",
+                            "SQL": "Strong Evidence",
+                            "Power BI": "Moderate Evidence",
+                            "Databricks": "Missing",
+                        },
+                    },
+                    {
+                        "id": "middle",
+                        "created_at": "2026-08-22T10:00:00Z",
+                        "evidence_adjusted_score": 75.0,
+                        "job_description_match": 100.0,
+                        "semantic_match": 75.0,
+                        "target_career_match": 95.0,
+                        "matched_skills": ["Python", "SQL", "Power BI"],
+                        "missing_skills": ["Databricks"],
+                        "evidence_levels": {},
+                    },
+                    {
+                        "id": "latest",
+                        "created_at": "2026-08-23T10:00:00Z",
+                        "evidence_adjusted_score": 80.0,
+                        "job_description_match": 90.0,
+                        "semantic_match": 72.0,
+                        "target_career_match": 92.0,
+                        "matched_skills": ["Python", "SQL", "Power BI"],
+                        "missing_skills": ["Databricks"],
+                        "evidence_levels": {},
+                    },
+                ],
+                "latest": {"id": "latest"},
+            }
+        )
+
+        self.assertEqual(best["analysis_id"], "earlier-best")
+        self.assertFalse(best["is_latest"])
+        self.assertEqual(best["saved_date"], "2026-08-21")
+        self.assertEqual(best["strong_skills"], ["Python", "SQL"])
+        self.assertEqual(best["remaining_gaps"], ["Databricks"])
+        self.assertIn("82.50%", best["reason"])
+        self.assertIn("Databricks", best["recommendation"])
+
+    def test_best_saved_resume_version_uses_recency_as_final_tie_breaker(self):
+        shared = {
+            "evidence_adjusted_score": 80.0,
+            "job_description_match": 80.0,
+            "semantic_match": 70.0,
+            "target_career_match": 90.0,
+            "matched_skills": ["Python"],
+            "missing_skills": [],
+            "evidence_levels": {"Python": "Strong Evidence"},
+        }
+        earlier = {
+            **shared,
+            "id": "earlier",
+            "created_at": "2026-08-20T10:00:00Z",
+        }
+        latest = {
+            **shared,
+            "id": "latest",
+            "created_at": "2026-08-23T10:00:00Z",
+        }
+
+        best = select_best_saved_resume_version(
+            {
+                "analyses": [latest, earlier],
+                "latest": latest,
+            }
+        )
+
+        self.assertEqual(best["analysis_id"], "latest")
+        self.assertTrue(best["is_latest"])
+        self.assertIn("preserve its truthful evidence", best["recommendation"])
+
+    def test_best_saved_resume_version_requires_saved_versions(self):
+        with self.assertRaisesRegex(ValueError, "comparable"):
+            select_best_saved_resume_version(None)
+        with self.assertRaisesRegex(ValueError, "No saved"):
+            select_best_saved_resume_version({})
+
     def test_saved_progress_insight_explains_flat_history(self):
         insight = generate_saved_progress_insight(
             {
@@ -168,6 +263,10 @@ class TalentBridgeEngineTests(unittest.TestCase):
         self.assertIn("Progress Insight", report)
         self.assertIn("Status: Progress Detected", report)
         self.assertIn("Recommended Next Step:", report)
+        self.assertIn("Best Saved Resume Version", report)
+        self.assertIn("Saved Date: 2026-08-23", report)
+        self.assertIn("Evidence-Adjusted Score:", report)
+        self.assertIn("Why Selected:", report)
         self.assertIn("or guarantee an interview", report)
 
     def test_saved_progress_report_requires_comparable_history(self):
@@ -238,6 +337,10 @@ class TalentBridgeEngineTests(unittest.TestCase):
         group = result["groups"][0]
         self.assertEqual(group["earliest"]["id"], "earliest")
         self.assertEqual(group["latest"]["id"], "latest")
+        self.assertEqual(
+            [snapshot["id"] for snapshot in group["analyses"]],
+            ["earliest", "latest"],
+        )
         self.assertEqual(group["skills_gained"], ["Databricks"])
         self.assertEqual(group["remaining_gaps"], [])
         self.assertEqual(len(group["trend_rows"]), 2)
