@@ -24,6 +24,7 @@ from career_engine import (
     build_saved_analysis_progress_dashboard,
     generate_saved_progress_insight,
     generate_saved_progress_report,
+    generate_best_version_application_plan,
     select_best_saved_resume_version,
     compare_saved_analyses,
     generate_hr_report,
@@ -1289,6 +1290,25 @@ with tab1:
                                     "The best saved analysis could not be loaded."
                                 )
                         st.caption(best_version["disclaimer"])
+
+                        application_plan = (
+                            generate_best_version_application_plan(
+                                progress_group,
+                                progress_target_career,
+                            )
+                        )
+                        st.download_button(
+                            label="Download Best-Version Application Plan",
+                            data=application_plan,
+                            file_name=(
+                                "talentbridge_best_version_application_plan.txt"
+                            ),
+                            mime="text/plain",
+                            key=(
+                                "download_best_version_application_plan_"
+                                f"{selected_progress_group_key}"
+                            ),
+                        )
 
                         progress_report = generate_saved_progress_report(
                             progress_group,
