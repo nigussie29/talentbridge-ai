@@ -3046,6 +3046,101 @@ def select_best_saved_resume_version(progress_group):
     }
 
 
+def generate_best_version_application_plan(progress_group, target_career):
+    """Create a truthful application plan for the strongest saved version.
+
+    The plan intentionally exports only the derived evidence summary. Private
+    résumé text and the full job posting remain in the signed-in user's saved
+    records.
+    """
+    if not progress_group:
+        raise ValueError("Choose a comparable saved-analysis history first.")
+
+    best = select_best_saved_resume_version(progress_group)
+    career = str(target_career or "Not specified")
+    job_title = str(progress_group.get("job_title", "") or "Saved Job")
+    strong_skills = list(best.get("strong_skills", []))
+    matched_skills = list(best.get("matched_skills", []))
+    remaining_gaps = list(best.get("remaining_gaps", []))
+
+    lines = [
+        "TalentBridge AI - Best-Version Application Plan",
+        "================================================",
+        "",
+        f"Target Career: {career}",
+        f"Job: {job_title}",
+        f"Selected Saved Version: {best['saved_date']}",
+        f"Comparable Versions Reviewed: {best['analysis_count']}",
+        "",
+        "Readiness Snapshot",
+        "------------------",
+        (
+            "- Evidence-Adjusted Requirement Score: "
+            f"{best['evidence_adjusted_score']:.2f}%"
+        ),
+        f"- Job Description Match: {best['job_description_match']:.2f}%",
+        f"- Semantic Match: {best['semantic_match']:.2f}%",
+        f"- Target Career Match: {best['target_career_match']:.2f}%",
+        "",
+        "Evidence to Lead With",
+        "---------------------",
+    ]
+    if strong_skills:
+        lines.extend(f"- {skill}" for skill in strong_skills)
+    else:
+        lines.append("- No strong-evidence skills were identified.")
+
+    lines.extend(["", "Matched Requirements", "--------------------"])
+    if matched_skills:
+        lines.extend(f"- {skill}" for skill in matched_skills)
+    else:
+        lines.append("- No required skills are currently matched.")
+
+    lines.extend(["", "Remaining Gaps", "--------------"])
+    if remaining_gaps:
+        lines.extend(f"- {skill}" for skill in remaining_gaps)
+    else:
+        lines.append("- No required-skill gaps remain under the current rules.")
+
+    lines.extend(
+        [
+            "",
+            "Application Checklist",
+            "---------------------",
+            "1. Load the selected saved analysis in TalentBridge.",
+            "2. Tailor the resume to the posting using only truthful, "
+            "supportable evidence.",
+            "3. Lead with the strongest evidence listed above and add "
+            "measurable scope only when it is accurate.",
+            (
+                "4. Address or honestly disclose every remaining gap before "
+                "presenting the resume as a complete match."
+                if remaining_gaps
+                else
+                "4. Recheck the original posting for non-skill requirements "
+                "before applying."
+            ),
+            "5. Verify dates, contact details, eligibility, experience years, "
+            "and every critical requirement against the original posting.",
+            "6. Prepare examples and portfolio proof that you can explain in "
+            "an interview.",
+            "",
+            f"Why This Version: {best['reason']}",
+            f"Recommended Use: {best['recommendation']}",
+            "",
+            "Important",
+            "---------",
+            "This plan ranks comparable saved resume evidence under the "
+            "current TalentBridge rules. It does not include private resume "
+            "text, verify proficiency or eligibility, predict an employer "
+            "decision, or guarantee an interview. Never add a skill, result, "
+            "project, or experience you cannot truthfully explain and prove.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def generate_saved_progress_insight(progress_group):
     """Explain the direction of one comparable saved-analysis history."""
     if not progress_group:
