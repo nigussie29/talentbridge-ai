@@ -2,6 +2,21 @@
 
 All notable changes to TalentBridge AI are documented here.
 
+## Phase 5D — Demo Recording Studio — 2026-08-26
+
+### Added
+
+- Added an in-app 3-Minute Demo Studio with seven timed scenes covering the
+  product value, reusable inputs, match results, evidence, guarded decisions,
+  growth planning, and closing message.
+- Added an exact narration script, recording actions, privacy safeguards, and a
+  downloadable recording plan.
+- Added a five-step public-demo readiness checklist for safe data, hidden
+  private details, closed notifications, readable display, and production
+  health verification.
+- Added automated tests that keep the canonical walkthrough at exactly three
+  minutes and preserve the product disclaimer.
+
 ## Phase 5C — Production Monitoring — 2026-08-26
 
 ### Added

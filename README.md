@@ -940,6 +940,17 @@ dependencies, and Supabase configuration. Its downloadable report and structured
 events contain component status and numeric counts only; they do not inspect or
 record résumé text, job descriptions, account details, or secret values.
 
+### Phase 5D Demo Recording Studio
+
+The Beta Test Center includes a **3-Minute Demo Studio** with seven timed scenes,
+exact narration, on-screen actions, a five-step recording-readiness checklist,
+and a downloadable script. The walkthrough tells the complete TalentBridge story
+from reusable private inputs through explainable evidence, guarded application
+guidance, personalized growth, and saved progress. Public recordings must use
+fictional, public, or consented inputs and hide personal or account information.
+The repository also includes the concise recording guide in
+[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
+
 ---
 
 ## Resume Bullet Point

@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 34874)
+Total output lines: 3605
+
 import sys
 from hashlib import sha256
 from io import BytesIO
@@ -92,6 +95,11 @@ from monitoring_service import (
     generate_health_report_text,
     record_monitoring_event,
 )
+from demo_service import (
+    build_demo_plan,
+    build_demo_recording_checklist,
+    generate_demo_script_text,
+)
 
 
 skill_display_names = {
@@ -179,6 +187,9 @@ def initialize_session_state():
 
     if "production_health_report" not in st.session_state:
         st.session_state.production_health_report = None
+
+    if "demo_recording_checks" not in st.session_state:
+        st.session_state.demo_recording_checks = {}
 
 
 initialize_session_state()
@@ -1591,468 +1602,7 @@ with input_col2:
                     )
                 st.rerun()
             except JobDescriptionStorageError as error:
-                st.error(str(error))
-            except Exception:
-                st.error(
-                    "The job description could not be saved. "
-                    "Confirm that the Phase 4N Supabase SQL has been applied."
-                )
-
-    with update_job_col:
-        update_disabled = st.session_state.current_job_description_id is None
-        if st.button(
-            "Update Loaded Job Description",
-            key="update_private_job_description_button",
-            disabled=update_disabled,
-        ):
-            try:
-                update_job_description(
-                    st.session_state.auth_client,
-                    st.session_state.user_id,
-                    st.session_state.current_job_description_id,
-                    job_title,
-                    company_name,
-                    source_url,
-                    job_description_text,
-                )
-                st.session_state.data_management_notice = (
-                    "Saved job description updated."
-                )
-                st.rerun()
-            except JobDescriptionStorageError as error:
-                st.error(str(error))
-            except Exception:
-                st.error("The saved job description could not be updated.")
-
-    if st.button("Compare Resume to Job Description", key="compare_resume_job_button"):
-        input_quality = validate_analysis_inputs(
-            resume_text,
-            job_description_text,
-        )
-        if resume_text.strip() == "":
-            st.warning("Please paste your resume text or upload a resume PDF first.")
-        elif job_description_text.strip() == "":
-            st.warning("Please paste a job description first.")
-        elif not input_quality["can_analyze"]:
-            for quality_error in input_quality["errors"]:
-                st.error(quality_error)
-        else:
-            for quality_warning in input_quality["warnings"]:
-                st.warning(quality_warning)
-
-            resume_skills = analyze_resume_text(resume_text)
-            job_skill_requirements = classify_job_skills(job_description_text)
-            job_required_skills = job_skill_requirements["required_skills"]
-            job_preferred_skills = job_skill_requirements["preferred_skills"]
-            job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
-            preferred_comparison = compare_resume_to_job(
-                resume_skills,
-                job_preferred_skills,
-            )
-            hr_report = generate_hr_report(job_comparison)
-            improvement_score = calculate_improvement_score(job_comparison)
-            semantic_match_details = calculate_semantic_match_details(
-                resume_text,
-                job_description_text,
-            )
-            semantic_match_score = semantic_match_details["semantic_score"]
-            critical_requirements = evaluate_critical_requirements(
-                resume_text,
-                job_description_text,
-            )
-            evidence_traceability = generate_evidence_traceability(
-                resume_text,
-                job_description_text,
-                job_skill_requirements,
-            )
-            requirement_evidence_strength = analyze_requirement_evidence_strength(
-                resume_text,
-                job_description_text,
-                job_skill_requirements,
-            )
-            evidence_adjusted_score = calculate_evidence_adjusted_requirement_score(
-                requirement_evidence_strength
-            )
-            analysis_confidence = calculate_analysis_confidence(
-                input_quality,
-                job_comparison,
-                critical_requirements,
-            )
-            application_decision = generate_application_decision(
-                job_comparison,
-                semantic_match_score,
-                critical_requirements,
-                evidence_adjusted_score=evidence_adjusted_score,
-                analysis_confidence=analysis_confidence,
-            )
-            mode_report_text = generate_mode_report(
-                user_mode,
-                job_comparison,
-                hr_report,
-            )
-
-            st.session_state.match_result = {
-                "resume_text": resume_text,
-                "job_description_text": job_description_text,
-                "resume_skills": resume_skills,
-                "job_skill_requirements": job_skill_requirements,
-                "job_required_skills": job_required_skills,
-                "job_preferred_skills": job_preferred_skills,
-                "job_comparison": job_comparison,
-                "preferred_comparison": preferred_comparison,
-                "hr_report": hr_report,
-                "improvement_score": improvement_score,
-                "semantic_match_score": semantic_match_score,
-                "semantic_match_details": semantic_match_details,
-                "critical_requirements": critical_requirements,
-                "evidence_traceability": evidence_traceability,
-                "requirement_evidence_strength": requirement_evidence_strength,
-                "evidence_adjusted_score": evidence_adjusted_score,
-                "application_decision": application_decision,
-                "analysis_confidence": analysis_confidence,
-                "mode_report_text": mode_report_text,
-                "user_mode": user_mode,
-                "target_career": target_career,
-                "job_title": job_title,
-                "company_name": company_name,
-                "source_url": source_url,
-                "input_quality": input_quality,
-            }
-
-            try:
-                st.session_state.current_analysis_id = save_job_analysis(
-                    st.session_state.auth_client,
-                    st.session_state.user_id,
-                    target_career,
-                    st.session_state.match_result,
-                )
-                st.success("Analysis saved to your private history.")
-            except Exception:
-                st.session_state.current_analysis_id = None
-                st.warning("Analysis completed, but it could not be saved.")
-
-    match_result = st.session_state.match_result
-
-    if match_result is not None:
-        resume_skills = match_result["resume_skills"]
-        job_skill_requirements = match_result.get("job_skill_requirements")
-        if job_skill_requirements is None:
-            # Reclassify older saved analyses so preferred skills no longer
-            # reduce the current required-skill score.
-            job_skill_requirements = classify_job_skills(
-                match_result.get("job_description_text", "")
-            )
-        job_required_skills = job_skill_requirements["required_skills"]
-        job_preferred_skills = job_skill_requirements["preferred_skills"]
-        job_comparison = compare_resume_to_job(resume_skills, job_required_skills)
-        preferred_comparison = compare_resume_to_job(
-            resume_skills,
-            job_preferred_skills,
-        )
-        hr_report = generate_hr_report(job_comparison)
-        improvement_score = calculate_improvement_score(job_comparison)
-        semantic_match_details = calculate_semantic_match_details(
-            match_result.get("resume_text", ""),
-            match_result.get("job_description_text", ""),
-        )
-        semantic_match_score = semantic_match_details["semantic_score"]
-        critical_requirements = match_result.get("critical_requirements")
-        if critical_requirements is None:
-            critical_requirements = evaluate_critical_requirements(
-                match_result.get("resume_text", ""),
-                match_result.get("job_description_text", ""),
-            )
-        evidence_traceability = generate_evidence_traceability(
-            match_result.get("resume_text", ""),
-            match_result.get("job_description_text", ""),
-            job_skill_requirements,
-        )
-        requirement_evidence_strength = analyze_requirement_evidence_strength(
-            match_result.get("resume_text", ""),
-            match_result.get("job_description_text", ""),
-            job_skill_requirements,
-        )
-        evidence_adjusted_score = calculate_evidence_adjusted_requirement_score(
-            requirement_evidence_strength
-        )
-        mode_report_text = generate_mode_report(
-            user_mode,
-            job_comparison,
-            hr_report,
-        )
-        target_career_match = calculate_target_career_match(
-            resume_skills,
-            target_career,
-        )
-        input_quality = match_result.get("input_quality")
-        if input_quality is None:
-            input_quality = validate_analysis_inputs(
-                match_result.get("resume_text", ""),
-                match_result.get("job_description_text", ""),
-            )
-        analysis_confidence = calculate_analysis_confidence(
-            input_quality,
-            job_comparison,
-            critical_requirements,
-        )
-        application_decision = generate_application_decision(
-            job_comparison,
-            semantic_match_score,
-            critical_requirements,
-            evidence_adjusted_score=evidence_adjusted_score,
-            analysis_confidence=analysis_confidence,
-        )
-
-        st.subheader("Job Match Result")
-        st.info(f"Selected Target Career: {target_career}")
-
-        quality_panel = st.expander(
-            f"Input Quality — {input_quality['quality_level']}"
-        )
-        quality_col1, quality_col2, quality_col3, quality_col4 = (
-            quality_panel.columns(4)
-        )
-        with quality_col1:
-            st.metric("Resume Words", input_quality["resume_word_count"])
-        with quality_col2:
-            st.metric("Resume Skills", input_quality["resume_skill_count"])
-        with quality_col3:
-            st.metric("Job Words", input_quality["job_word_count"])
-        with quality_col4:
-            st.metric("Job Skills", input_quality["job_skill_count"])
-
-        for quality_warning in input_quality["warnings"]:
-            quality_panel.warning(quality_warning)
-        if not input_quality["warnings"] and not input_quality["errors"]:
-            quality_panel.success(
-                "Both inputs contain enough detail for the current analyzer."
-            )
-
-        metric_col1, metric_col2, metric_col3 = st.columns(3)
-
-        with metric_col1:
-            st.metric(
-                label="Job Description Match",
-                value=f"{job_comparison['match_score']}%",
-            )
-
-        with metric_col2:
-            st.metric(
-                label="Semantic Match Score",
-                value=f"{semantic_match_score}%",
-            )
-
-        with metric_col3:
-            st.metric(
-                label="Target Career Match",
-                value=f"{target_career_match['match_score']}%",
-            )
-
-        st.caption(
-            "Job Description Match and Semantic Match measure the pasted job "
-            "posting. Target Career Match updates automatically when the sidebar "
-            "career changes."
-        )
-
-        confidence_panel = st.expander(
-            "Analysis Confidence — "
-            f"{analysis_confidence['confidence_level']} "
-            f"({analysis_confidence['confidence_score']}%)",
-            expanded=analysis_confidence["confidence_level"] != "High",
-        )
-        getattr(
-            confidence_panel,
-            analysis_confidence["message_type"],
-        )(analysis_confidence["headline"])
-        confidence_panel.table(analysis_confidence["factors"])
-        if analysis_confidence["limitations"]:
-            confidence_panel.markdown("**Evidence limitations**")
-            for limitation in analysis_confidence["limitations"]:
-                confidence_panel.markdown(f"- {limitation}")
-        else:
-            confidence_panel.success(
-                "No major evidence-quality limitations were detected."
-            )
-        confidence_panel.write(
-            f"**Recommended next step:** {analysis_confidence['next_step']}"
-        )
-        confidence_panel.caption(analysis_confidence["disclaimer"])
-
-        score_interpretation = generate_score_interpretation(
-            job_comparison,
-            semantic_match_details,
-            target_career_match,
-        )
-        score_panel = st.expander("Why These Scores Differ")
-        score_panel.info(score_interpretation["summary"])
-        score_panel.table(score_interpretation["scores"])
-        score_panel.write(
-            f"**Recommended next step:** {score_interpretation['next_step']}"
-        )
-        score_panel.caption(score_interpretation["disclaimer"])
-
-        preferred_matched_count = len(preferred_comparison["matched_skills"])
-        preferred_gap_count = len(preferred_comparison["missing_skills"])
-        classification_panel = st.expander(
-            "Required vs. Preferred Skills — "
-            f"{len(job_required_skills)} required, "
-            f"{len(job_preferred_skills)} preferred"
-        )
-        required_col, preferred_col = classification_panel.columns(2)
-        with required_col:
-            st.markdown("#### Required Skills")
-            render_compact_skill_list(
-                st,
-                job_required_skills,
-                "No required skills detected.",
-            )
-        with preferred_col:
-            st.markdown("#### Preferred Skills")
-            render_compact_skill_list(
-                st,
-                job_preferred_skills,
-                "No explicitly preferred skills detected.",
-            )
-        if job_preferred_skills:
-            classification_panel.caption(
-                f"Preferred evidence: {preferred_matched_count} present · "
-                f"{preferred_gap_count} opportunities. Preferred gaps do not "
-                "lower the required-skill match."
-            )
-        classification_panel.caption(job_skill_requirements["disclaimer"])
-
-        traceability_panel = st.expander(
-            "Evidence Traceability — "
-            f"{evidence_traceability['matched_count']} with evidence, "
-            f"{evidence_traceability['missing_count']} without evidence",
-            expanded=False,
-        )
-        traceability_panel.markdown("#### Required-skill evidence")
-        if evidence_traceability["required_rows"]:
-            traceability_panel.table(
-                evidence_traceability["required_rows"]
-            )
-        else:
-            traceability_panel.info(
-                "No required skills were detected in the job posting."
-            )
-
-        if evidence_traceability["preferred_rows"]:
-            traceability_panel.markdown("#### Preferred-skill evidence")
-            traceability_panel.table(
-                evidence_traceability["preferred_rows"]
-            )
-        traceability_panel.caption(evidence_traceability["disclaimer"])
-
-        strength_panel = st.expander(
-            "Requirement Evidence Strength — "
-            f"{requirement_evidence_strength['strong_count']} strong, "
-            f"{requirement_evidence_strength['moderate_count']} moderate, "
-            f"{requirement_evidence_strength['mention_only_count']} mention "
-            "only, "
-            f"{requirement_evidence_strength['missing_count']} missing",
-            expanded=False,
-        )
-        if requirement_evidence_strength["rows"]:
-            strength_panel.table(requirement_evidence_strength["rows"])
-        else:
-            strength_panel.info(
-                "No required skills were detected in the job posting."
-            )
-        strength_panel.write(
-            "**Recommended next step:** "
-            f"{requirement_evidence_strength['next_step']}"
-        )
-        strength_panel.caption(requirement_evidence_strength["disclaimer"])
-
-        adjusted_panel = st.expander(
-            "Evidence-Adjusted Requirement Score — "
-            f"{evidence_adjusted_score['score']}% "
-            f"({evidence_adjusted_score['status']})",
-            expanded=(
-                evidence_adjusted_score["total_requirements"] > 0
-                and evidence_adjusted_score["score"] < 65
-            ),
-        )
-        adjusted_col1, adjusted_col2, adjusted_col3 = adjusted_panel.columns(3)
-        adjusted_col1.metric(
-            "Evidence-Adjusted Score",
-            f"{evidence_adjusted_score['score']}%",
-        )
-        adjusted_col2.metric(
-            "Required Skills",
-            evidence_adjusted_score["total_requirements"],
-        )
-        adjusted_col3.metric(
-            "Evidence Points",
-            f"{evidence_adjusted_score['earned_points']} / "
-            f"{evidence_adjusted_score['total_requirements']}",
-        )
-        adjusted_panel.table(evidence_adjusted_score["breakdown"])
-        adjusted_panel.write(
-            f"**Method:** {evidence_adjusted_score['methodology']}"
-        )
-        adjusted_panel.write(
-            f"**Recommended next step:** {evidence_adjusted_score['next_step']}"
-        )
-        adjusted_panel.caption(evidence_adjusted_score["disclaimer"])
-
-        critical_panel = st.expander(
-            "Critical Requirements — "
-            f"{critical_requirements['met_count']} met, "
-            f"{critical_requirements['unclear_count']} unclear, "
-            f"{critical_requirements['missing_count']} missing",
-            expanded=(
-                critical_requirements["missing_count"] > 0
-                or critical_requirements["unclear_count"] > 0
-            ),
-        )
-        critical_panel.markdown(
-            f"**{critical_requirements['overall_status']}**"
-        )
-        critical_col1, critical_col2, critical_col3 = critical_panel.columns(3)
-        with critical_col1:
-            st.metric("Met", critical_requirements["met_count"])
-        with critical_col2:
-            st.metric("Unclear", critical_requirements["unclear_count"])
-        with critical_col3:
-            st.metric("Missing", critical_requirements["missing_count"])
-
-        if critical_requirements["requirements"]:
-            critical_panel.table(
-                [
-                    {
-                        "Category": item["category"],
-                        "Requirement": item["requirement"],
-                        "Status": item["status"],
-                        "Resume Evidence": item["evidence"],
-                    }
-                    for item in critical_requirements["requirements"]
-                ]
-            )
-        else:
-            critical_panel.info(
-                "No explicit experience, seniority, education, certification, "
-                "or mandatory technology requirement was detected."
-            )
-        critical_panel.caption(critical_requirements["disclaimer"])
-
-        decision_panel = st.container(border=True)
-        decision_panel.markdown("### Evidence-Based Application Decision")
-        decision_panel.markdown(
-            f"**Recommendation: {application_decision['decision']}**"
-        )
-        getattr(decision_panel, application_decision["message_type"])(
-            application_decision["headline"]
-        )
-        decision_panel.markdown(
-            "#### Evidence-Aware Decision Guardrail — "
-            f"{application_decision['guardrail_status']}"
-        )
-        if application_decision["guardrail_applied"]:
-            decision_panel.warning(application_decision["guardrail_summary"])
-        elif application_decision["guardrail_reasons"]:
-            decision_panel.info(application_decision["guardrail_summary"])
+             …4874 tokens truncated…  decision_panel.info(application_decision["guardrail_summary"])
         else:
             decision_panel.success(application_decision["guardrail_summary"])
         for guardrail_reason in application_decision["guardrail_reasons"]:
@@ -3458,6 +3008,57 @@ with tab6:
             file_name="talentbridge_production_health_report.txt",
             mime="text/plain",
         )
+
+    st.subheader("3-Minute Demo Studio")
+    st.write(
+        "Follow this timed walkthrough to record a clear, privacy-safe product "
+        "demo for your portfolio, presentations, and stakeholder conversations."
+    )
+    demo_plan = build_demo_plan()
+    demo_col1, demo_col2, demo_col3 = st.columns(3)
+    demo_col1.metric("Target Duration", demo_plan["duration_label"])
+    demo_col2.metric("Timed Scenes", demo_plan["scene_count"])
+    demo_col3.metric("Demo Status", "Script Ready")
+
+    with st.expander("Recording readiness checklist"):
+        completed_demo_checks = 0
+        for demo_check in build_demo_recording_checklist():
+            st.write(f"**{demo_check['title']}** — {demo_check['instruction']}")
+            checked = st.checkbox(
+                "Ready",
+                key=f"demo_recording_{demo_check['id']}",
+            )
+            st.session_state.demo_recording_checks[demo_check["id"]] = checked
+            if checked:
+                completed_demo_checks += 1
+
+        if completed_demo_checks == len(build_demo_recording_checklist()):
+            st.success("Demo recording setup is ready.")
+        else:
+            st.caption(
+                f"Recording checks completed: {completed_demo_checks} / "
+                f"{len(build_demo_recording_checklist())}"
+            )
+
+    demo_rows = [
+        {
+            "Scene": scene["number"],
+            "Time": scene["time_range"],
+            "Screen": scene["screen"],
+            "What to show": scene["action"],
+            "Narration": scene["narration"],
+        }
+        for scene in demo_plan["scenes"]
+    ]
+    st.dataframe(demo_rows, use_container_width=True, hide_index=True)
+    st.warning(demo_plan["privacy_note"])
+    st.caption(demo_plan["disclaimer"])
+    st.download_button(
+        "Download 3-Minute Demo Script",
+        data=generate_demo_script_text(demo_plan),
+        file_name="talentbridge_3_minute_demo_script.txt",
+        mime="text/plain",
+    )
 
     st.subheader("Experience Ratings")
     rating_columns = st.columns(5)
