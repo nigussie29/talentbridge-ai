@@ -4252,6 +4252,65 @@ def build_beta_test_plan(user_mode):
     }
 
 
+def build_ui_polish_checklist():
+    """Return the viewport and accessibility checks used for UI beta testing."""
+    return [
+        {
+            "id": "mobile_layout",
+            "title": "Mobile layout",
+            "instructions": (
+                "Open the app in a narrow browser window or on a phone and review "
+                "the dashboard, forms, score cards, and Beta Test Center."
+            ),
+            "expected_result": (
+                "Columns stack into a readable single-column layout without clipped "
+                "text or controls."
+            ),
+        },
+        {
+            "id": "tab_navigation",
+            "title": "Tab navigation",
+            "instructions": (
+                "Move through all six main tabs on a narrow screen."
+            ),
+            "expected_result": (
+                "The tab row scrolls horizontally, and every tab remains reachable."
+            ),
+        },
+        {
+            "id": "keyboard_focus",
+            "title": "Keyboard focus",
+            "instructions": (
+                "Use the Tab key to move through links, buttons, inputs, checkboxes, "
+                "and selectors."
+            ),
+            "expected_result": (
+                "The focused control has a visible blue outline and can be activated "
+                "from the keyboard."
+            ),
+        },
+        {
+            "id": "zoom_readability",
+            "title": "Zoom readability",
+            "instructions": "Set browser zoom to 200% and inspect the current page.",
+            "expected_result": (
+                "Important content remains readable and usable without overlapping."
+            ),
+        },
+        {
+            "id": "table_and_report_access",
+            "title": "Tables and reports",
+            "instructions": (
+                "Open a detailed result table and use a report download button on a "
+                "narrow screen."
+            ),
+            "expected_result": (
+                "Wide results can be scrolled, and download buttons remain easy to tap."
+            ),
+        },
+    ]
+
+
 def _clean_beta_feedback_text(value, limit=2000):
     """Normalize downloadable feedback without retaining control characters."""
     cleaned = " ".join(str(value or "").replace("\x00", " ").split())
