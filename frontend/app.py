@@ -97,6 +97,10 @@ from demo_service import (
     build_demo_recording_checklist,
     generate_demo_script_text,
 )
+from launch_service import (
+    build_launch_readiness_report,
+    generate_launch_readiness_text,
+)
 
 
 skill_display_names = {
@@ -187,6 +191,9 @@ def initialize_session_state():
 
     if "demo_recording_checks" not in st.session_state:
         st.session_state.demo_recording_checks = {}
+
+    if "launch_readiness_report" not in st.session_state:
+        st.session_state.launch_readiness_report = None
 
 
 initialize_session_state()
@@ -3517,6 +3524,79 @@ with tab6:
         file_name="talentbridge_3_minute_demo_script.txt",
         mime="text/plain",
     )
+
+    st.subheader("MVP Launch Readiness Gate")
+    st.write(
+        "Combine the beta, interface, production-health, public-demo, safety, "
+        "and release-evidence checks into one final MVP decision."
+    )
+    launch_safety_reviewed = st.checkbox(
+        "I reviewed the safety, privacy, and evidence disclaimers.",
+        key="launch_safety_reviewed",
+    )
+    launch_release_reviewed = st.checkbox(
+        "I reviewed the release notes, automated test results, and demo instructions.",
+        key="launch_release_reviewed",
+    )
+    if st.button("Evaluate MVP Launch Readiness", key="evaluate_launch_readiness"):
+        health_status = (
+            health_report["status"] if health_report else "Not run"
+        )
+        launch_report = build_launch_readiness_report(
+            role_scenarios_passed=len(completed_beta_scenarios),
+            role_scenario_count=len(beta_plan["scenarios"]),
+            ui_checks_passed=completed_ui_checks,
+            ui_check_count=len(ui_polish_checks),
+            health_status=health_status,
+            demo_checks_passed=completed_demo_checks,
+            demo_check_count=len(build_demo_recording_checklist()),
+            safety_reviewed=launch_safety_reviewed,
+            release_notes_reviewed=launch_release_reviewed,
+        )
+        st.session_state.launch_readiness_report = launch_report
+        record_monitoring_event(
+            "mvp_launch_readiness",
+            launch_report["status"],
+            "release",
+            {
+                "check_count": launch_report["total_count"],
+                "passed_count": launch_report["ready_count"],
+                "failed_count": launch_report["blocked_count"],
+            },
+        )
+
+    launch_report = st.session_state.launch_readiness_report
+    if launch_report:
+        launch_col1, launch_col2, launch_col3 = st.columns(3)
+        launch_col1.metric("Launch Status", launch_report["status"])
+        launch_col2.metric(
+            "Ready Gates",
+            f"{launch_report['ready_count']} / {launch_report['total_count']}",
+        )
+        launch_col3.metric("Blocked Gates", launch_report["blocked_count"])
+        st.table(
+            [
+                {
+                    "Launch gate": gate["gate"],
+                    "Status": gate["status"],
+                    "Evidence": gate["evidence"],
+                    "Next step": gate["detail"],
+                }
+                for gate in launch_report["gates"]
+            ]
+        )
+        if launch_report["status"] == "Ready to Launch":
+            st.success(launch_report["next_action"])
+        else:
+            st.warning(launch_report["next_action"])
+        st.caption(launch_report["privacy_note"])
+        st.caption(launch_report["disclaimer"])
+        st.download_button(
+            "Download MVP Launch Readiness Report",
+            data=generate_launch_readiness_text(launch_report),
+            file_name="talentbridge_mvp_launch_readiness_report.txt",
+            mime="text/plain",
+        )
 
     st.subheader("Experience Ratings")
     rating_columns = st.columns(5)

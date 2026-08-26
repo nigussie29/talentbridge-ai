@@ -951,6 +951,15 @@ fictional, public, or consented inputs and hide personal or account information.
 The repository also includes the concise recording guide in
 [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md).
 
+### Phase 5E MVP Launch Readiness
+
+The Beta Test Center includes an **MVP Launch Readiness Gate** that combines six
+release checks: role workflow, mobile and accessibility, production health,
+public-demo setup, safety and privacy review, and release-evidence review. The
+app displays each gate as Ready or Blocked and provides a downloadable,
+privacy-safe launch report. The release checklist is documented in
+[`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md).
+
 ---
 
 ## Resume Bullet Point
