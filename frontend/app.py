@@ -92,6 +92,11 @@ from monitoring_service import (
     generate_health_report_text,
     record_monitoring_event,
 )
+from demo_service import (
+    build_demo_plan,
+    build_demo_recording_checklist,
+    generate_demo_script_text,
+)
 
 
 skill_display_names = {
@@ -179,6 +184,9 @@ def initialize_session_state():
 
     if "production_health_report" not in st.session_state:
         st.session_state.production_health_report = None
+
+    if "demo_recording_checks" not in st.session_state:
+        st.session_state.demo_recording_checks = {}
 
 
 initialize_session_state()
@@ -3458,6 +3466,57 @@ with tab6:
             file_name="talentbridge_production_health_report.txt",
             mime="text/plain",
         )
+
+    st.subheader("3-Minute Demo Studio")
+    st.write(
+        "Follow this timed walkthrough to record a clear, privacy-safe product "
+        "demo for your portfolio, presentations, and stakeholder conversations."
+    )
+    demo_plan = build_demo_plan()
+    demo_col1, demo_col2, demo_col3 = st.columns(3)
+    demo_col1.metric("Target Duration", demo_plan["duration_label"])
+    demo_col2.metric("Timed Scenes", demo_plan["scene_count"])
+    demo_col3.metric("Demo Status", "Script Ready")
+
+    with st.expander("Recording readiness checklist"):
+        completed_demo_checks = 0
+        for demo_check in build_demo_recording_checklist():
+            st.write(f"**{demo_check['title']}** — {demo_check['instruction']}")
+            checked = st.checkbox(
+                "Ready",
+                key=f"demo_recording_{demo_check['id']}",
+            )
+            st.session_state.demo_recording_checks[demo_check["id"]] = checked
+            if checked:
+                completed_demo_checks += 1
+
+        if completed_demo_checks == len(build_demo_recording_checklist()):
+            st.success("Demo recording setup is ready.")
+        else:
+            st.caption(
+                f"Recording checks completed: {completed_demo_checks} / "
+                f"{len(build_demo_recording_checklist())}"
+            )
+
+    demo_rows = [
+        {
+            "Scene": scene["number"],
+            "Time": scene["time_range"],
+            "Screen": scene["screen"],
+            "What to show": scene["action"],
+            "Narration": scene["narration"],
+        }
+        for scene in demo_plan["scenes"]
+    ]
+    st.dataframe(demo_rows, use_container_width=True, hide_index=True)
+    st.warning(demo_plan["privacy_note"])
+    st.caption(demo_plan["disclaimer"])
+    st.download_button(
+        "Download 3-Minute Demo Script",
+        data=generate_demo_script_text(demo_plan),
+        file_name="talentbridge_3_minute_demo_script.txt",
+        mime="text/plain",
+    )
 
     st.subheader("Experience Ratings")
     rating_columns = st.columns(5)
