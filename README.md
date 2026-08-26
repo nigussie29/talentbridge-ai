@@ -931,6 +931,15 @@ targets, responsive typography, and reduced-motion support. The Beta Test Center
 contains a **Mobile & Accessibility Check** with five repeatable checks for narrow
 screens, keyboard navigation, 200% zoom, tables, and report downloads.
 
+### Phase 5C Production Monitoring
+
+The repository includes an hourly GitHub Actions uptime check for the public app
+and Streamlit health endpoint. The Beta Test Center also contains a
+**Production Health Check** for the Python runtime, required application
+dependencies, and Supabase configuration. Its downloadable report and structured
+events contain component status and numeric counts only; they do not inspect or
+record résumé text, job descriptions, account details, or secret values.
+
 ---
 
 ## Resume Bullet Point
