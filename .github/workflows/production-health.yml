@@ -1,0 +1,34 @@
+name: TalentBridge Production Health
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: talentbridge-production-health
+  cancel-in-progress: true
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APP_URL: https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app
+
+    steps:
+      - name: Check public application
+        run: >-
+          curl --fail --silent --show-error --location
+          --retry 3 --retry-delay 10 --max-time 90
+          --output /dev/null "$APP_URL/"
+
+      - name: Check Streamlit health endpoint
+        run: |
+          health_response="$(curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 10 --max-time 90 \
+            "$APP_URL/_stcore/health")"
+          echo "$health_response" | grep -Eiq "ok|healthy"
