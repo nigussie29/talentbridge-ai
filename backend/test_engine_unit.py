@@ -15,6 +15,7 @@ from career_engine import (
     calculate_target_career_match,
     classify_job_skills,
     build_saved_analysis_progress_dashboard,
+    build_beta_test_plan,
     compare_resume_to_job,
     compare_saved_analyses,
     evaluate_critical_requirements,
@@ -22,6 +23,7 @@ from career_engine import (
     generate_evidence_traceability,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
+    generate_beta_feedback_report,
     generate_match_action_summary,
     generate_progress_tracker,
     generate_resume_improvement_plan,
@@ -1895,6 +1897,56 @@ class TalentBridgeEngineTests(unittest.TestCase):
 
         self.assertEqual(result["decision"], "Interview Ready")
         self.assertEqual(result["missing_skills"], "No major missing skills detected.")
+
+    def test_beta_test_plan_is_role_specific_and_complete(self):
+        job_seeker_plan = build_beta_test_plan("Job Seeker")
+        recruiter_plan = build_beta_test_plan("HR / Recruiter")
+        training_plan = build_beta_test_plan("Training Center")
+
+        self.assertEqual(job_seeker_plan["scenario_count"], 4)
+        self.assertEqual(recruiter_plan["scenario_count"], 4)
+        self.assertEqual(training_plan["scenario_count"], 4)
+        self.assertNotEqual(
+            job_seeker_plan["scenarios"][0]["id"],
+            recruiter_plan["scenarios"][0]["id"],
+        )
+        self.assertIn("consented", recruiter_plan["privacy_note"])
+
+    def test_beta_test_plan_rejects_unknown_role(self):
+        with self.assertRaises(ValueError):
+            build_beta_test_plan("Administrator")
+
+    def test_beta_feedback_report_passes_complete_high_quality_session(self):
+        plan = build_beta_test_plan("Job Seeker")
+        result = generate_beta_feedback_report(
+            user_mode="Job Seeker",
+            completed_scenario_ids=[item["id"] for item in plan["scenarios"]],
+            ratings={"Accuracy": 5, "Clarity": 4, "Ease of Use": 5},
+            issue_severity="Minor",
+            improvement_suggestion="Make one label shorter.",
+            tester_alias="Beta Tester 1",
+        )
+
+        self.assertEqual(result["status"], "Passed")
+        self.assertEqual(result["completion_rate"], 100.0)
+        self.assertEqual(result["average_rating"], 4.67)
+        self.assertIn("Beta Tester 1", result["report_text"])
+        self.assertIn("excludes resume and job-description text", result["report_text"])
+
+    def test_beta_feedback_report_blocks_and_ignores_unknown_scenarios(self):
+        result = generate_beta_feedback_report(
+            user_mode="Training Center",
+            completed_scenario_ids=["not_a_real_scenario"],
+            ratings={"Clarity": 9, "Invalid": "not a number"},
+            issue_severity="Blocker",
+            issue_notes="\x00Report download failed.",
+        )
+
+        self.assertEqual(result["status"], "Blocked")
+        self.assertEqual(result["completed_count"], 0)
+        self.assertEqual(result["average_rating"], 5.0)
+        self.assertNotIn("\x00", result["report_text"])
+        self.assertIn("Resolve the blocker", result["next_action"])
 
 
 if __name__ == "__main__":

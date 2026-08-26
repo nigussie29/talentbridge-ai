@@ -38,6 +38,8 @@ from career_engine import (
     screen_multiple_candidates,
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
+    build_beta_test_plan,
+    generate_beta_feedback_report,
     generate_match_action_summary,
     generate_application_decision,
     generate_score_interpretation,
@@ -578,13 +580,14 @@ else:
     )
 
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
     [
         "📄 Resume & Job Match",
         "📊 Career Readiness",
         "🚀 Product Vision",
         "💼 Business Case",
-        "🏢 HR Batch Screening"
+        "🏢 HR Batch Screening",
+        "🧪 Beta Test Center",
     ]
 )
 
@@ -3201,3 +3204,120 @@ with tab5:
                     file_name="talentbridge_hr_batch_screening_report.txt",
                     mime="text/plain"
                 )
+
+
+# ==================================================
+# TAB 6: BETA TEST CENTER
+# ==================================================
+with tab6:
+    st.header("Beta Test Center")
+    st.write(
+        "Test the complete TalentBridge workflow for your signed-in role and "
+        "capture structured, privacy-safe feedback."
+    )
+
+    beta_plan = build_beta_test_plan(user_mode)
+    st.info(f"**Testing as:** {beta_plan['user_mode']}")
+    st.write(f"**Objective:** {beta_plan['objective']}")
+    st.warning(beta_plan["privacy_note"])
+
+    st.subheader("Role-Specific Test Scenarios")
+    completed_beta_scenarios = []
+    for scenario_number, scenario in enumerate(beta_plan["scenarios"], start=1):
+        with st.container(border=True):
+            st.markdown(f"### {scenario_number}. {scenario['title']}")
+            st.write(scenario["instructions"])
+            st.caption(f"Expected result: {scenario['expected_result']}")
+            if st.checkbox(
+                "I completed this scenario and observed the expected result.",
+                key=f"beta_scenario_{user_mode}_{scenario['id']}",
+            ):
+                completed_beta_scenarios.append(scenario["id"])
+
+    st.caption(f"Success criteria: {beta_plan['success_criteria']}")
+
+    st.subheader("Experience Ratings")
+    rating_columns = st.columns(5)
+    beta_rating_names = [
+        "Accuracy",
+        "Clarity",
+        "Ease of Use",
+        "Speed",
+        "Trust",
+    ]
+    beta_ratings = {}
+    for column, rating_name in zip(rating_columns, beta_rating_names):
+        with column:
+            beta_ratings[rating_name] = st.slider(
+                rating_name,
+                min_value=1,
+                max_value=5,
+                value=4,
+                key=f"beta_rating_{user_mode}_{rating_name}",
+            )
+
+    feedback_col1, feedback_col2 = st.columns(2)
+    with feedback_col1:
+        beta_issue_severity = st.selectbox(
+            "Highest issue severity",
+            ["None", "Minor", "Major", "Blocker"],
+            key=f"beta_issue_severity_{user_mode}",
+        )
+        beta_tester_alias = st.text_input(
+            "Tester alias (optional)",
+            placeholder="Example: Beta Tester 1",
+            help="Use an alias, not a full name or email address.",
+            key=f"beta_tester_alias_{user_mode}",
+        )
+    with feedback_col2:
+        beta_issue_notes = st.text_area(
+            "Issue notes",
+            placeholder="What happened, where, and what did you expect?",
+            help="Do not paste resumes, job descriptions, names, emails, or secrets.",
+            key=f"beta_issue_notes_{user_mode}",
+        )
+        beta_improvement_suggestion = st.text_area(
+            "One improvement suggestion",
+            placeholder="What would make TalentBridge more useful or easier to use?",
+            key=f"beta_improvement_{user_mode}",
+        )
+
+    beta_result = generate_beta_feedback_report(
+        user_mode=user_mode,
+        completed_scenario_ids=completed_beta_scenarios,
+        ratings=beta_ratings,
+        issue_severity=beta_issue_severity,
+        issue_notes=beta_issue_notes,
+        improvement_suggestion=beta_improvement_suggestion,
+        tester_alias=beta_tester_alias,
+    )
+
+    st.subheader("Beta Session Summary")
+    summary_col1, summary_col2, summary_col3 = st.columns(3)
+    summary_col1.metric(
+        "Scenarios Completed",
+        f"{beta_result['completed_count']} / {beta_result['scenario_count']}",
+    )
+    summary_col2.metric("Average Rating", f"{beta_result['average_rating']:.2f} / 5")
+    summary_col3.metric("Beta Status", beta_result["status"])
+
+    if beta_result["status"] == "Passed":
+        st.success(beta_result["next_action"])
+    elif beta_result["status"] == "Blocked":
+        st.error(beta_result["next_action"])
+    else:
+        st.warning(beta_result["next_action"])
+
+    st.download_button(
+        "Download Beta Feedback Report",
+        data=beta_result["report_text"],
+        file_name=(
+            "talentbridge_beta_feedback_"
+            f"{user_mode.lower().replace(' / ', '_').replace(' ', '_')}.txt"
+        ),
+        mime="text/plain",
+    )
+    st.caption(
+        "Feedback is generated in the current session and is not saved to the "
+        "TalentBridge database."
+    )

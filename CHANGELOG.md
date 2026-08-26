@@ -2,6 +2,19 @@
 
 All notable changes to TalentBridge AI are documented here.
 
+## Phase 5A — Beta User Testing — 2026-08-26
+
+### Added
+
+- Added an in-app Beta Test Center with role-specific Job Seeker,
+  HR / Recruiter, and Training Center scenarios.
+- Added scenario completion tracking, 1–5 experience ratings, issue severity,
+  privacy-safe notes, and Passed / Needs Review / Blocked session results.
+- Added downloadable beta feedback reports that intentionally exclude résumé
+  and job-description text and require no new database migration.
+- Added automated tests for beta plan coverage, role validation, report status,
+  rating normalization, and feedback sanitization.
+
 ## MVP — 2026-08
 
 ### Added

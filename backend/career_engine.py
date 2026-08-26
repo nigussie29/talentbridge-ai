@@ -4063,3 +4063,320 @@ def generate_interview_preparation_plan(resume_text, job_required_skills):
             "learning plan."
         ),
     }
+
+
+_BETA_TEST_PLANS = {
+    "Job Seeker": {
+        "objective": (
+            "Confirm that a job seeker can reuse private inputs, understand the "
+            "evidence-based results, and leave with a practical next action."
+        ),
+        "scenarios": [
+            {
+                "id": "reuse_private_inputs",
+                "title": "Reuse private inputs",
+                "instructions": (
+                    "Load a saved resume and saved job description, or save and "
+                    "reload new test inputs."
+                ),
+                "expected_result": (
+                    "The selected inputs return to the comparison form without "
+                    "copying and pasting them again."
+                ),
+            },
+            {
+                "id": "review_job_match",
+                "title": "Review a job match",
+                "instructions": (
+                    "Run a comparison and inspect the scores, required skills, "
+                    "evidence, and remaining gaps."
+                ),
+                "expected_result": (
+                    "The result explains what each score measures and connects "
+                    "every recommendation to visible resume evidence."
+                ),
+            },
+            {
+                "id": "change_target_career",
+                "title": "Change the target career",
+                "instructions": (
+                    "Choose a different target career in the sidebar while keeping "
+                    "the same resume and job description."
+                ),
+                "expected_result": (
+                    "Target Career Match and career-readiness guidance update for "
+                    "the new career."
+                ),
+            },
+            {
+                "id": "use_next_action",
+                "title": "Use a next action",
+                "instructions": (
+                    "Review the improvement, learning, interview, or application "
+                    "plan and download one report."
+                ),
+                "expected_result": (
+                    "The user can identify a truthful next step and download a "
+                    "report without exposing full private inputs."
+                ),
+            },
+        ],
+    },
+    "HR / Recruiter": {
+        "objective": (
+            "Confirm that an HR reviewer can compare candidates consistently while "
+            "keeping evidence strength and human review visible."
+        ),
+        "scenarios": [
+            {
+                "id": "review_candidate_fit",
+                "title": "Review candidate fit",
+                "instructions": (
+                    "Compare a candidate resume with a job description and inspect "
+                    "required, preferred, and critical requirements."
+                ),
+                "expected_result": (
+                    "Required and preferred skills are separated, and uncertain or "
+                    "missing evidence is not presented as proven."
+                ),
+            },
+            {
+                "id": "trace_evidence",
+                "title": "Trace the evidence",
+                "instructions": (
+                    "Open evidence traceability and requirement-evidence strength."
+                ),
+                "expected_result": (
+                    "Each supported requirement includes a resume excerpt and a "
+                    "plain-language evidence-strength explanation."
+                ),
+            },
+            {
+                "id": "screen_candidates",
+                "title": "Screen multiple candidates",
+                "instructions": (
+                    "Use HR Batch Screening with at least two fictional or consented "
+                    "candidate resumes."
+                ),
+                "expected_result": (
+                    "Candidates are ranked consistently and gaps remain visible for "
+                    "human review."
+                ),
+            },
+            {
+                "id": "download_hr_report",
+                "title": "Download the HR report",
+                "instructions": "Download and inspect the recruiter-ready report.",
+                "expected_result": (
+                    "The report contains evidence-based guidance and states that it "
+                    "is not an employer decision."
+                ),
+            },
+        ],
+    },
+    "Training Center": {
+        "objective": (
+            "Confirm that a training provider can turn evidence-based skill gaps "
+            "into a clear, measurable learning pathway."
+        ),
+        "scenarios": [
+            {
+                "id": "review_learner_readiness",
+                "title": "Review learner readiness",
+                "instructions": (
+                    "Analyze a fictional or consented learner resume against a "
+                    "target role."
+                ),
+                "expected_result": (
+                    "The app separates current evidence, missing skills, and skills "
+                    "that need stronger proof."
+                ),
+            },
+            {
+                "id": "prioritize_training",
+                "title": "Prioritize training",
+                "instructions": (
+                    "Review the skill-gap priorities and personalized course plan."
+                ),
+                "expected_result": (
+                    "The highest-value gaps appear first with concrete learning "
+                    "tasks."
+                ),
+            },
+            {
+                "id": "track_portfolio_progress",
+                "title": "Track portfolio progress",
+                "instructions": (
+                    "Add test portfolio links and progress statuses for missing "
+                    "skills, then generate the evidence summary."
+                ),
+                "expected_result": (
+                    "Progress and portfolio evidence affect the proof-based view "
+                    "without claiming verified proficiency."
+                ),
+            },
+            {
+                "id": "download_training_report",
+                "title": "Download the training report",
+                "instructions": "Download and inspect the Training Center report.",
+                "expected_result": (
+                    "The report gives an actionable learning pathway and retains the "
+                    "evidence-use disclaimer."
+                ),
+            },
+        ],
+    },
+}
+
+
+def build_beta_test_plan(user_mode):
+    """Return a role-specific, privacy-safe beta test plan."""
+    if user_mode not in _BETA_TEST_PLANS:
+        raise ValueError("Unsupported beta tester role.")
+
+    source_plan = _BETA_TEST_PLANS[user_mode]
+    scenarios = [dict(scenario) for scenario in source_plan["scenarios"]]
+    return {
+        "user_mode": user_mode,
+        "objective": source_plan["objective"],
+        "scenarios": scenarios,
+        "scenario_count": len(scenarios),
+        "success_criteria": (
+            "Complete every scenario, give an average rating of at least 4 out of "
+            "5, and report no major or blocker issue."
+        ),
+        "privacy_note": (
+            "Use fictional, public, or consented test data. Do not enter names, "
+            "email addresses, secrets, or confidential resume content in feedback."
+        ),
+    }
+
+
+def _clean_beta_feedback_text(value, limit=2000):
+    """Normalize downloadable feedback without retaining control characters."""
+    cleaned = " ".join(str(value or "").replace("\x00", " ").split())
+    return cleaned[:limit]
+
+
+def generate_beta_feedback_report(
+    user_mode,
+    completed_scenario_ids=None,
+    ratings=None,
+    issue_severity="None",
+    issue_notes="",
+    improvement_suggestion="",
+    tester_alias="Anonymous tester",
+):
+    """Summarize beta results without including resume or job-description text."""
+    plan = build_beta_test_plan(user_mode)
+    valid_ids = {scenario["id"] for scenario in plan["scenarios"]}
+    completed_ids = {
+        item for item in (completed_scenario_ids or []) if item in valid_ids
+    }
+    normalized_ratings = {}
+    for name, value in (ratings or {}).items():
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        normalized_ratings[_clean_beta_feedback_text(name, 80)] = max(
+            1.0, min(5.0, numeric_value)
+        )
+
+    completed_count = len(completed_ids)
+    scenario_count = plan["scenario_count"]
+    completion_rate = round((completed_count / scenario_count) * 100, 2)
+    average_rating = (
+        round(sum(normalized_ratings.values()) / len(normalized_ratings), 2)
+        if normalized_ratings
+        else 0.0
+    )
+    allowed_severities = {"None", "Minor", "Major", "Blocker"}
+    severity = issue_severity if issue_severity in allowed_severities else "None"
+
+    if severity == "Blocker":
+        status = "Blocked"
+        next_action = "Resolve the blocker and repeat the affected scenarios."
+    elif severity == "Major" or completion_rate < 100 or average_rating < 4:
+        status = "Needs Review"
+        next_action = (
+            "Review the incomplete or low-rated areas, address major issues, and "
+            "run another beta session."
+        )
+    else:
+        status = "Passed"
+        next_action = (
+            "Record the successful session and continue collecting feedback from "
+            "another tester role."
+        )
+
+    completed_titles = [
+        scenario["title"]
+        for scenario in plan["scenarios"]
+        if scenario["id"] in completed_ids
+    ]
+    incomplete_titles = [
+        scenario["title"]
+        for scenario in plan["scenarios"]
+        if scenario["id"] not in completed_ids
+    ]
+    rating_lines = [
+        f"- {name}: {value:.1f}/5"
+        for name, value in normalized_ratings.items()
+    ] or ["- No ratings recorded."]
+
+    report_lines = [
+        "TalentBridge AI - Beta Feedback Report",
+        "======================================",
+        "",
+        f"Tester Role: {user_mode}",
+        f"Tester Alias: {_clean_beta_feedback_text(tester_alias, 100) or 'Anonymous tester'}",
+        f"Beta Status: {status}",
+        f"Scenarios Completed: {completed_count} of {scenario_count} ({completion_rate:.2f}%)",
+        f"Average Rating: {average_rating:.2f}/5",
+        f"Highest Issue Severity: {severity}",
+        "",
+        "Completed Scenarios",
+        "-------------------",
+        *([f"- {title}" for title in completed_titles] or ["- None"]),
+        "",
+        "Incomplete Scenarios",
+        "--------------------",
+        *([f"- {title}" for title in incomplete_titles] or ["- None"]),
+        "",
+        "Ratings",
+        "-------",
+        *rating_lines,
+        "",
+        "Issue Notes",
+        "-----------",
+        _clean_beta_feedback_text(issue_notes) or "No issue notes recorded.",
+        "",
+        "Improvement Suggestion",
+        "----------------------",
+        _clean_beta_feedback_text(improvement_suggestion)
+        or "No improvement suggestion recorded.",
+        "",
+        "Recommended Next Action",
+        "-----------------------",
+        next_action,
+        "",
+        "Privacy and Scope",
+        "-----------------",
+        (
+            "This summary intentionally excludes resume and job-description text. "
+            "Beta feedback measures user experience; it does not verify score "
+            "accuracy, make an employer decision, or guarantee an interview."
+        ),
+    ]
+
+    return {
+        "status": status,
+        "completed_count": completed_count,
+        "scenario_count": scenario_count,
+        "completion_rate": completion_rate,
+        "average_rating": average_rating,
+        "issue_severity": severity,
+        "next_action": next_action,
+        "report_text": "\n".join(report_lines),
+    }
