@@ -923,6 +923,14 @@ require additional product research, data, or infrastructure:
 * Add subscription billing only after product and legal requirements are defined
 * Add external BI and RAG integrations only with explicit user data controls
 
+### Phase 5B UI and Mobile Validation
+
+The deployed interface includes responsive stacking for phone-sized screens,
+scrollable navigation and result tables, visible keyboard focus, larger touch
+targets, responsive typography, and reduced-motion support. The Beta Test Center
+contains a **Mobile & Accessibility Check** with five repeatable checks for narrow
+screens, keyboard navigation, 200% zoom, tables, and report downloads.
+
 ---
 
 ## Resume Bullet Point

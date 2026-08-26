@@ -16,6 +16,7 @@ from career_engine import (
     classify_job_skills,
     build_saved_analysis_progress_dashboard,
     build_beta_test_plan,
+    build_ui_polish_checklist,
     compare_resume_to_job,
     compare_saved_analyses,
     evaluate_critical_requirements,
@@ -1915,6 +1916,17 @@ class TalentBridgeEngineTests(unittest.TestCase):
     def test_beta_test_plan_rejects_unknown_role(self):
         with self.assertRaises(ValueError):
             build_beta_test_plan("Administrator")
+
+    def test_ui_polish_checklist_covers_mobile_and_accessibility(self):
+        checklist = build_ui_polish_checklist()
+
+        self.assertEqual(len(checklist), 5)
+        self.assertEqual(len({item["id"] for item in checklist}), 5)
+        self.assertTrue(
+            all(item["title"] and item["expected_result"] for item in checklist)
+        )
+        self.assertIn("Mobile layout", [item["title"] for item in checklist])
+        self.assertIn("Keyboard focus", [item["title"] for item in checklist])
 
     def test_beta_feedback_report_passes_complete_high_quality_session(self):
         plan = build_beta_test_plan("Job Seeker")
