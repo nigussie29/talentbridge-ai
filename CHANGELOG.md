@@ -2,6 +2,20 @@
 
 All notable changes to TalentBridge AI are documented here.
 
+## Phase 5B — UI and Mobile Polish — 2026-08-26
+
+### Added
+
+- Added responsive single-column stacking for forms, score cards, ratings, and
+  other multi-column sections on phone-sized screens.
+- Added horizontally scrollable primary tabs and wide result tables so content
+  remains reachable on narrow screens.
+- Added accessible keyboard focus indicators, larger touch targets, a skip link,
+  reduced-motion support, and responsive hero typography.
+- Added a visible Mobile & Accessibility Check in the Beta Test Center covering
+  mobile layout, tab access, keyboard focus, 200% zoom, tables, and downloads.
+- Added automated coverage for the Phase 5B interface checklist.
+
 ## Phase 5A — Beta User Testing — 2026-08-26
 
 ### Added
