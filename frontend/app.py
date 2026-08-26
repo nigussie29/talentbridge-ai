@@ -87,6 +87,11 @@ from resume_storage_service import (
     load_resume,
     save_resume,
 )
+from monitoring_service import (
+    build_health_report,
+    generate_health_report_text,
+    record_monitoring_event,
+)
 
 
 skill_display_names = {
@@ -172,6 +177,9 @@ def initialize_session_state():
     if "saved_analysis_progress_dashboard" not in st.session_state:
         st.session_state.saved_analysis_progress_dashboard = None
 
+    if "production_health_report" not in st.session_state:
+        st.session_state.production_health_report = None
+
 
 initialize_session_state()
 st.set_page_config(
@@ -197,6 +205,21 @@ def get_auth_client():
 
     st.session_state.auth_client = create_auth_client(url, key)
     return st.session_state.auth_client
+
+
+def get_deployment_configuration_status():
+    """Return configuration presence without returning secret values."""
+    try:
+        supabase_secrets = st.secrets["supabase"]
+        return {
+            "supabase_url_configured": bool(supabase_secrets.get("url")),
+            "supabase_key_configured": bool(supabase_secrets.get("key")),
+        }
+    except Exception:
+        return {
+            "supabase_url_configured": False,
+            "supabase_key_configured": False,
+        }
 
 
 def login_screen():
@@ -3381,6 +3404,59 @@ with tab6:
         st.caption(
             f"Interface checks completed: {completed_ui_checks} / "
             f"{len(ui_polish_checks)}"
+        )
+
+    st.subheader("Production Health Check")
+    st.write(
+        "Verify the deployed runtime, required dependencies, and authentication "
+        "configuration without displaying or recording private values."
+    )
+    if st.button("Run Production Health Check", key="run_production_health"):
+        health_report = build_health_report(get_deployment_configuration_status())
+        st.session_state.production_health_report = health_report
+        record_monitoring_event(
+            "production_health_check",
+            health_report["status"],
+            "deployment",
+            {
+                "check_count": health_report["total_count"],
+                "passed_count": health_report["passed_count"],
+                "failed_count": health_report["failed_count"],
+            },
+        )
+
+    health_report = st.session_state.production_health_report
+    if health_report:
+        health_col1, health_col2, health_col3 = st.columns(3)
+        health_col1.metric("Deployment Status", health_report["status"])
+        health_col2.metric(
+            "Healthy Checks",
+            f"{health_report['passed_count']} / {health_report['total_count']}",
+        )
+        health_col3.metric("Failed Checks", health_report["failed_count"])
+
+        health_rows = [
+            {
+                "Component": check["component"],
+                "Status": check["status"],
+                "Detail": check["detail"],
+            }
+            for check in health_report["checks"]
+        ]
+        st.table(health_rows)
+        if health_report["status"] == "Operational":
+            st.success("All production health checks passed.")
+        else:
+            st.warning(
+                "One or more deployment checks need attention. Review the table "
+                "before continuing beta testing."
+            )
+        st.caption(health_report["privacy_note"])
+        st.download_button(
+            "Download Production Health Report",
+            data=generate_health_report_text(health_report),
+            file_name="talentbridge_production_health_report.txt",
+            mime="text/plain",
         )
 
     st.subheader("Experience Ratings")

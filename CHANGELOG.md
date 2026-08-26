@@ -2,6 +2,19 @@
 
 All notable changes to TalentBridge AI are documented here.
 
+## Phase 5C — Production Monitoring — 2026-08-26
+
+### Added
+
+- Added an hourly GitHub Actions uptime check for the public application and
+  Streamlit health endpoint, with a manual run option.
+- Added a visible Production Health Check in the Beta Test Center for the Python
+  runtime, application dependencies, and Supabase configuration.
+- Added downloadable privacy-safe health reports and allow-listed structured
+  monitoring events that exclude résumés, job descriptions, account details,
+  and secret values.
+- Added automated monitoring tests for healthy, degraded, and privacy behavior.
+
 ## Phase 5B — UI and Mobile Polish — 2026-08-26
 
 ### Added
