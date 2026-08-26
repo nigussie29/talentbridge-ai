@@ -39,6 +39,7 @@ from career_engine import (
     generate_interview_readiness_report,
     generate_interview_preparation_plan,
     build_beta_test_plan,
+    build_ui_polish_checklist,
     generate_beta_feedback_report,
     generate_match_action_summary,
     generate_application_decision,
@@ -313,6 +314,7 @@ st.markdown(
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;
+        max-width: 1500px;
     }
 
     h1 {
@@ -379,9 +381,129 @@ st.markdown(
         font-size: 18px;
         color: #dbeafe;
     }
+
+    .skip-link {
+        position: fixed;
+        top: 0.75rem;
+        left: 0.75rem;
+        z-index: 1000000;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        background: #f8fafc;
+        color: #0f172a !important;
+        font-weight: 700;
+        transform: translateY(-200%);
+        transition: transform 0.15s ease;
+    }
+
+    .skip-link:focus {
+        transform: translateY(0);
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible,
+    [role="tab"]:focus-visible,
+    [role="checkbox"]:focus-visible,
+    [role="slider"]:focus-visible {
+        outline: 3px solid #60a5fa !important;
+        outline-offset: 3px !important;
+        box-shadow: 0 0 0 3px rgba(2, 6, 23, 0.95) !important;
+    }
+
+    div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    div[data-testid="stTabs"] div[data-baseweb="tab-list"] button {
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    div[data-testid="stDataFrame"],
+    div[data-testid="stTable"] {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    div[data-testid="stButton"] button,
+    div[data-testid="stDownloadButton"] button {
+        min-height: 44px;
+    }
+
+    @media (max-width: 768px) {
+        .block-container {
+            padding: 1rem 0.75rem 2rem;
+        }
+
+        .hero-box {
+            padding: 20px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+        }
+
+        .hero-box h1 {
+            font-size: clamp(1.75rem, 9vw, 2.25rem);
+            line-height: 1.15;
+        }
+
+        .hero-box p {
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        .product-card {
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+
+        [data-testid="stAppViewContainer"] [data-testid="stHorizontalBlock"] {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        [data-testid="stAppViewContainer"] [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        div[data-testid="stButton"] button,
+        div[data-testid="stDownloadButton"] button,
+        div[data-testid="stFormSubmitButton"] button {
+            width: 100%;
+            min-height: 46px;
+        }
+
+        .stMetric {
+            padding: 14px;
+        }
+
+        section[data-testid="stSidebar"] {
+            min-width: min(86vw, 320px);
+            max-width: min(86vw, 320px);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            scroll-behavior: auto !important;
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
     </style>
     """,
     unsafe_allow_html=True
+)
+
+st.markdown(
+    '<a class="skip-link" href="#talentbridge-main">Skip to main content</a>'
+    '<div id="talentbridge-main"></div>',
+    unsafe_allow_html=True,
 )
 
 st.markdown(
@@ -3235,6 +3357,31 @@ with tab6:
                 completed_beta_scenarios.append(scenario["id"])
 
     st.caption(f"Success criteria: {beta_plan['success_criteria']}")
+
+    st.subheader("Mobile & Accessibility Check")
+    st.write(
+        "Use these quick checks on a phone or narrow browser window before "
+        "approving the interface."
+    )
+    ui_polish_checks = build_ui_polish_checklist()
+    completed_ui_checks = 0
+    for check_number, check in enumerate(ui_polish_checks, start=1):
+        with st.expander(f"{check_number}. {check['title']}"):
+            st.write(check["instructions"])
+            st.caption(f"Expected result: {check['expected_result']}")
+            if st.checkbox(
+                "This interface check passed.",
+                key=f"ui_polish_{check['id']}",
+            ):
+                completed_ui_checks += 1
+
+    if completed_ui_checks == len(ui_polish_checks):
+        st.success("Mobile and accessibility checks passed.")
+    else:
+        st.caption(
+            f"Interface checks completed: {completed_ui_checks} / "
+            f"{len(ui_polish_checks)}"
+        )
 
     st.subheader("Experience Ratings")
     rating_columns = st.columns(5)
