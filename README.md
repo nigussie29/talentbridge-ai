@@ -112,6 +112,19 @@ The app currently supports:
 
 ## Key Features
 
+### Beta Test Center
+
+Signed-in users can run a structured beta session for their locked role: Job
+Seeker, HR / Recruiter, or Training Center. Each role receives four practical
+scenarios with an expected result, a completion checklist, 1–5 experience
+ratings, issue severity, and privacy-safe feedback fields.
+
+The center calculates a clear Passed, Needs Review, or Blocked result and
+creates a downloadable feedback report. Feedback remains in the current
+browser session, is not written to a new database table, and intentionally
+excludes résumé and job-description text. Testers are instructed to use only
+fictional, public, or consented data.
+
 ### PDF Resume Upload
 
 Users can upload a PDF resume. The app extracts resume text and uses it for skill detection and job matching.
