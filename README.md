@@ -4,7 +4,7 @@
 
 Try the app here:
 
-https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app/
+https://talentbridge-ai.streamlit.app/
 
 ## GitHub Repository
 
@@ -972,4 +972,4 @@ Built TalentBridge AI, an end-to-end AI career readiness and training web applic
 
 Current release: TalentBridge AI MVP — August 2026
 Status: Production-ready portfolio MVP deployed on Streamlit Community Cloud
-Live Demo: https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app/
+Live Demo: https://talentbridge-ai.streamlit.app/

@@ -4,7 +4,7 @@ from copy import deepcopy
 
 
 PUBLIC_DEMO_URL = (
-    "https://talentbridge-ai-8e3fcvn6dzewqfbskts8dn.streamlit.app/"
+    "https://talentbridge-ai.streamlit.app/"
 )
 
 
